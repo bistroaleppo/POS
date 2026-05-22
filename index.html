@@ -12,8 +12,43 @@
 
 <body>
 
+  <!-- ==========================================================================
+       1. SECURE LOGIN VIEW PANEL
+       ========================================================================== -->
+  <div class="login-container" id="login-container" style="display: flex;">
+    <div class="login-card">
+      <div class="login-logo">
+        <img src="./assets/logo.png" alt="Bistro Logo">
+      </div>
+
+      <div class="login-header">
+        <h1>Bistro POS</h1>
+        <p>بوابة الكاشير الآمنة لإدارة المبيعات</p>
+      </div>
+
+      <div class="login-error" id="login-error-container">
+        <span></span>
+        <span id="login-error-message">خطأ في البريد الإلكتروني أو كلمة المرور!</span>
+      </div>
+
+      <form id="login-form" onsubmit="handleLoginSubmit(event)">
+        <div class="login-form-group">
+          <label for="email-input">البريد الإلكتروني المعتمد</label>
+          <input type="email" id="email-input" class="login-form-control" placeholder="example@restaurant.com" required>
+        </div>
+
+        <div class="login-form-group">
+          <label for="password-input">كلمة المرور</label>
+          <input type="password" id="password-input" class="login-form-control" placeholder="••••••••" required>
+        </div>
+
+        <button type="submit" class="btn-login" id="btn-login-text">تسجيل الدخول</button>
+      </form>
+    </div>
+  </div>
+
   <!-- App Shell Container -->
-  <div class="app-container">
+  <div class="app-container" id="app-container" style="display: none;">
 
     <!-- Sidebar Navigation -->
     <aside class="app-sidebar">
@@ -89,6 +124,7 @@
           <div class="time-display" id="time-display">00:00:00</div>
           <div class="date-display" id="date-display">الخميس، 21 مايو</div>
         </div>
+        <button class="btn btn-logout" onclick="handleLogout()" style="margin-top: 15px; width: 100%; background: #ef4444; color: white; padding: 10px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600;">تسجيل الخروج</button>
       </div>
     </aside>
 
@@ -969,6 +1005,7 @@
   <!-- Scripts -->
   <!-- Firebase Compat SDKs (Required for seamless Pure Frontend operation) -->
   <script src="./assets/js/firebase-app-compat.js"></script>
+  <script src="./assets/js/firebase-auth-compat.js"></script>
   <script src="./assets/js/firebase-firestore-compat.js"></script>
   <script src="database.js"></script>
   <script src="app.js"></script>

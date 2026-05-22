@@ -11,6 +11,7 @@ const ASSETS_TO_CACHE = [
   './assets/logo.png',
   './assets/logo.jpg',
   './assets/js/firebase-app-compat.js',
+  './assets/js/firebase-auth-compat.js',
   './assets/js/firebase-firestore-compat.js'
 ];
 

@@ -45,6 +45,47 @@ function formatCurrency(amount) {
 // Initialization & Startup
 // ==========================================================================
 
+// ==========================================================================
+// AUTHENTICATION FLOW
+// ==========================================================================
+async function handleLoginSubmit(e) {
+  e.preventDefault();
+
+  const email = document.getElementById('email-input').value.trim();
+  const password = document.getElementById('password-input').value.trim();
+  const errorContainer = document.getElementById('login-error-container');
+  const loginBtn = document.getElementById('btn-login-text');
+
+  errorContainer.style.display = 'none';
+  loginBtn.textContent = 'جاري التحقق والدخول...';
+  loginBtn.style.opacity = '0.7';
+  loginBtn.disabled = true;
+
+  try {
+    await firebase.auth().signInWithEmailAndPassword(email, password);
+  } catch (err) {
+    console.error('Login failed:', err);
+    errorContainer.style.display = 'flex';
+    document.getElementById('password-input').value = '';
+    loginBtn.textContent = 'تسجيل الدخول';
+    loginBtn.style.opacity = '1';
+    loginBtn.disabled = false;
+
+    errorContainer.style.animation = 'none';
+    errorContainer.offsetHeight; /* trigger reflow */
+    errorContainer.style.animation = 'shake 0.5s ease';
+  }
+}
+
+async function handleLogout() {
+  try {
+    await firebase.auth().signOut();
+  } catch (err) {
+    console.error('Logout failed:', err);
+  }
+  window.location.reload();
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     // 1. Start clock widget immediately so UI is alive
@@ -53,65 +94,83 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 2. Hook up window-level events
     setupGlobalEventListeners();
 
-    // 3. Render default tab and setup shell
-    switchTab('dashboard');
-
-    // 4. Initialize Firebase database connection
-    state.db = new BistroDatabase();
-    const isConfigured = await state.db.init();
-
-    if (!isConfigured) {
-      alert('لم يتم إعداد قاعدة بيانات Firebase بعد أو فشل الاتصال بها. يرجى إدخال إعدادات الاتصال الصحيحة داخل ملف database.js لتشغيل المزامنة السحابية.');
-    } else {
-      // 5. Seed data if first run on connected cloud
-      await state.db.seedIfEmpty();
+    if (!firebase.apps.length) {
+      // Need firebaseConfig from database.js
+      firebase.initializeApp(firebaseConfig);
     }
 
-    // 6. Load data from DB into state (handles fallback to empty gracefully)
-    await refreshStateData();
+    firebase.auth().onAuthStateChanged(async (user) => {
+      if (user) {
+        // Logged in
+        document.getElementById('login-container').style.display = 'none';
+        document.getElementById('app-container').style.display = 'flex';
 
-    // 6.1 Attach real-time listener for settings so remote changes propagate immediately
-    try {
-      if (state.db && state.db.firestore) {
-        console.log('Attaching settings realtime listener...');
-        state.db.firestore.collection('settings').onSnapshot(snapshot => {
-          console.log('Settings snapshot received:', snapshot.size);
-          const settings = [];
-          snapshot.forEach(doc => settings.push({ id: doc.id, ...doc.data() }));
+        // 3. Render default tab and setup shell
+        switchTab('dashboard');
 
-          console.log('Parsed settings docs:', settings);
+        // 4. Initialize Firebase database connection
+        state.db = new BistroDatabase();
+        const isConfigured = await state.db.init();
 
-          const taxRateSetting = settings.find(s => s.id === 'tax_rate');
-          if (taxRateSetting) state.taxRate = parseFloat(taxRateSetting.value);
+        if (!isConfigured) {
+          alert('لم يتم إعداد قاعدة بيانات Firebase بعد أو فشل الاتصال بها. يرجى إدخال إعدادات الاتصال الصحيحة داخل ملف database.js لتشغيل المزامنة السحابية.');
+        } else {
+          // 5. Seed data if first run on connected cloud
+          await state.db.seedIfEmpty();
+        }
 
-          const brandNameSetting = settings.find(s => s.id === 'restaurant_name');
-          if (brandNameSetting) state.restaurantName = brandNameSetting.value;
+        // 6. Load data from DB into state (handles fallback to empty gracefully)
+        await refreshStateData();
 
-          const brandSloganSetting = settings.find(s => s.id === 'restaurant_slogan');
-          if (brandSloganSetting) state.restaurantSlogan = brandSloganSetting.value;
+        // 6.1 Attach real-time listener for settings so remote changes propagate immediately
+        try {
+          if (state.db && state.db.firestore) {
+            console.log('Attaching settings realtime listener...');
+            state.db.firestore.collection('settings').onSnapshot(snapshot => {
+              console.log('Settings snapshot received:', snapshot.size);
+              const settings = [];
+              snapshot.forEach(doc => settings.push({ id: doc.id, ...doc.data() }));
 
-          const brandLogoSetting = settings.find(s => s.id === 'restaurant_logo');
-          if (brandLogoSetting) state.restaurantLogo = brandLogoSetting.value;
+              console.log('Parsed settings docs:', settings);
 
-          const brandFooterSetting = settings.find(s => s.id === 'restaurant_footer');
-          if (brandFooterSetting) state.restaurantFooter = brandFooterSetting.value;
+              const taxRateSetting = settings.find(s => s.id === 'tax_rate');
+              if (taxRateSetting) state.taxRate = parseFloat(taxRateSetting.value);
 
-          // Update UI from newest state
-          updateBrandUI();
-          updateGlobalStatsUI();
-        }, err => console.error('Settings realtime listener failed:', err));
+              const brandNameSetting = settings.find(s => s.id === 'restaurant_name');
+              if (brandNameSetting) state.restaurantName = brandNameSetting.value;
+
+              const brandSloganSetting = settings.find(s => s.id === 'restaurant_slogan');
+              if (brandSloganSetting) state.restaurantSlogan = brandSloganSetting.value;
+
+              const brandLogoSetting = settings.find(s => s.id === 'restaurant_logo');
+              if (brandLogoSetting) state.restaurantLogo = brandLogoSetting.value;
+
+              const brandFooterSetting = settings.find(s => s.id === 'restaurant_footer');
+              if (brandFooterSetting) state.restaurantFooter = brandFooterSetting.value;
+
+              // Update UI from newest state
+              updateBrandUI();
+              updateGlobalStatsUI();
+            }, err => console.error('Settings realtime listener failed:', err));
+          }
+        } catch (err) {
+          console.warn('Could not attach settings listener:', err);
+        }
+
+        // 7. Render dashboard immediately now that all state data is loaded
+        renderDashboard();
+
+        // 8. Check Daily Backup Warning
+        checkDailyBackupReminder();
+
+        console.log('POS initialized successfully.');
+      } else {
+        // Not logged in
+        document.getElementById('login-container').style.display = 'flex';
+        document.getElementById('app-container').style.display = 'none';
       }
-    } catch (err) {
-      console.warn('Could not attach settings listener:', err);
-    }
+    });
 
-    // 7. Render dashboard immediately now that all state data is loaded
-    renderDashboard();
-
-    // 8. Check Daily Backup Warning
-    checkDailyBackupReminder();
-
-    console.log('POS initialized successfully.');
   } catch (error) {
     console.error('Initialization failed:', error);
     alert('حدث خطأ أثناء تحميل قاعدة البيانات. يرجى التحقق من إعدادات Firebase والاتصال بالإنترنت.');
