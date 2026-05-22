@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,11 +8,12 @@
   <link rel="icon" type="image/png" href="./assets/logo.png">
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
   <!-- App Shell Container -->
   <div class="app-container">
-    
+
     <!-- Sidebar Navigation -->
     <aside class="app-sidebar">
       <div class="brand-section">
@@ -36,7 +38,7 @@
 
         <button class="nav-item" id="nav-btn-menu" onclick="switchTab('menu')">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
             <path d="M4 6h16M4 12h16M4 18h16" />
           </svg>
           <span>قائمة الطعام</span>
@@ -44,8 +46,9 @@
 
         <button class="nav-item" id="nav-btn-tables" onclick="switchTab('tables')">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
           </svg>
           <span>إعدادات النظام</span>
         </button>
@@ -59,8 +62,20 @@
           <span>الفواتير والتقارير</span>
         </button>
 
+        <button class="nav-item" id="nav-btn-reservations" onclick="switchTab('reservations')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span>حجز الطاولات</span>
+        </button>
+
         <button class="nav-item" id="nav-btn-finance" onclick="window.open('finance.html', '_blank')">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
             <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
             <polyline points="17 6 23 6 23 12"></polyline>
           </svg>
@@ -78,19 +93,20 @@
 
     <!-- Main Content Area -->
     <main class="app-main">
-      
+
       <!-- Daily Backup Alert Banner -->
       <div id="daily-backup-banner" class="backup-alert-banner" style="display: none;">
         <div class="banner-content">
           <span class="banner-icon"></span>
-          <span class="banner-text">تنبيه النسخ الاحتياطي اليومي: لم يتم حفظ نسخة لبيانات اليوم لحمايتها من الضياع.</span>
+          <span class="banner-text">تنبيه النسخ الاحتياطي اليومي: لم يتم حفظ نسخة لبيانات اليوم لحمايتها من
+            الضياع.</span>
         </div>
         <div class="banner-actions">
           <button class="banner-btn-download" onclick="triggerDailyBackupDownload()">تنزيل نسخة احتياطية الآن</button>
           <button class="banner-btn-dismiss" onclick="dismissBackupBanner()" title="إغلاق">&times;</button>
         </div>
       </div>
-      
+
       <!-- Top Header Bar -->
       <header class="app-header">
         <div class="header-title-area">
@@ -162,7 +178,9 @@
           </div>
           <div class="action-group">
             <button class="btn btn-secondary" onclick="openAddTableQuickModal()">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
               إضافة طاولة سريعة
             </button>
           </div>
@@ -178,13 +196,15 @@
       <!-- VIEW 2: MENU MANAGER (PRODUCTS & CATEGORIES) -->
       <section id="view-menu" class="tab-view">
         <div class="menu-manager-layout">
-          
+
           <!-- Left Panel: Categories -->
           <div class="menu-categories-panel">
             <div class="panel-header">
               <h3>التصنيفات</h3>
               <button class="btn-icon-add" onclick="openAddCategoryModal()" title="إضافة تصنيف جديد">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
               </button>
             </div>
             <div class="categories-list-container" id="categories-list">
@@ -198,8 +218,12 @@
               <div class="search-and-filter">
                 <h3>المنتجات والمأكولات</h3>
                 <div class="search-box-wrapper">
-                  <input type="text" id="product-search-input" placeholder="ابحث عن منتج..." oninput="filterProductsList()">
-                  <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input type="text" id="product-search-input" placeholder="ابحث عن منتج..."
+                    oninput="filterProductsList()">
+                  <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
                 </div>
               </div>
               <div class="action-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -220,7 +244,7 @@
       <!-- VIEW 3: SYSTEM SETTINGS -->
       <section id="view-tables" class="tab-view">
         <div class="settings-grid-layout">
-          
+
           <!-- Right: Tables Layout Configs -->
           <div class="tables-settings-container">
             <div class="panel-header-large">
@@ -229,7 +253,9 @@
                 <p class="subtitle">قم بإضافة طاولات جديدة، تعديل أرقامها، سعة مقاعدها، أو حذفها نهائياً.</p>
               </div>
               <button class="btn btn-primary" onclick="openAddTableModal()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
                 إضافة طاولة جديدة
               </button>
             </div>
@@ -250,25 +276,26 @@
               </table>
             </div>
           </div>
-          
+
           <!-- Left: General System Configs -->
           <div class="general-configs-container">
             <!-- Tax Rate Card -->
             <div class="configs-card">
               <div class="configs-card-header">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="3"/>
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                  <circle cx="12" cy="12" r="3" />
+                  <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
                 </svg>
                 <h4>إعدادات النظام العامة</h4>
               </div>
               <p class="configs-subtitle">قم بضبط المدخلات والنسب الحسابية العامة للضريبة والخدمة.</p>
-              
+
               <div class="form-group">
                 <label for="settings-tax-rate">نسبة الخدمة والضريبة (%):</label>
                 <input type="number" id="settings-tax-rate" min="0" max="100" class="form-control" value="15">
               </div>
-              
+
               <button class="btn btn-primary btn-block" onclick="saveSystemSettings()">
                 حفظ الإعدادات العامة
               </button>
@@ -278,41 +305,47 @@
             <div class="configs-card" style="margin-top: 20px;">
               <div class="configs-card-header">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                 </svg>
                 <h4>إعدادات هوية المطعم / المقهى</h4>
               </div>
               <p class="configs-subtitle">قم بتخصيص الاسم والشعار والعبارة الترحيبية على الفاتورة.</p>
-              
+
               <div class="form-group">
                 <label for="settings-brand-name">اسم المطعم / المقهى:</label>
-                <input type="text" id="settings-brand-name" class="form-control" placeholder="مثال: BISTRO">
+                <input type="text" id="settings-brand-name" class="form-control">
               </div>
-              
+
               <div class="form-group">
                 <label for="settings-brand-slogan">العبارة الفرعية (السلوجان):</label>
-                <input type="text" id="settings-brand-slogan" class="form-control" placeholder="مثال: eatery & Social House">
+                <input type="text" id="settings-brand-slogan" class="form-control">
               </div>
-              
+
               <div class="form-group">
                 <label for="settings-brand-footer">تذييل الفاتورة (ملاحظة أسفل الإيصال):</label>
-                <input type="text" id="settings-brand-footer" class="form-control" placeholder="مثال: شكرًا لزيارتكم وطاب يومكم!">
+                <input type="text" id="settings-brand-footer" class="form-control">
               </div>
-              
+
               <div class="form-group">
                 <label>شعار المطعم / المقهى:</label>
                 <div style="display: flex; align-items: center; gap: 15px; margin-top: 5px;">
-                  <div class="logo-preview-wrapper" style="width: 60px; height: 60px; border-radius: 8px; border: 1px solid var(--border-light); overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #f8fafc;">
-                    <img id="settings-logo-preview" src="./assets/logo.png" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                  <div class="logo-preview-wrapper"
+                    style="width: 60px; height: 60px; border-radius: 8px; border: 1px solid var(--border-light); overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #f8fafc;">
+                    <img id="settings-logo-preview" src="./assets/logo.png"
+                      style="max-width: 100%; max-height: 100%; object-fit: contain;">
                   </div>
                   <div style="flex-grow: 1;">
-                    <input type="file" id="settings-logo-input" accept="image/*" style="display: none;" onchange="previewLogoFile(event)">
-                    <button class="btn btn-secondary btn-xs" onclick="document.getElementById('settings-logo-input').click()" style="margin-bottom: 5px;">اختيار صورة الشعار</button>
-                    <p style="font-size: 11px; color: var(--text-muted); margin: 0;">يتم ضغط الصورة وحفظها تلقائياً كـ Base64.</p>
+                    <input type="file" id="settings-logo-input" accept="image/*" style="display: none;"
+                      onchange="previewLogoFile(event)">
+                    <button class="btn btn-secondary btn-xs"
+                      onclick="document.getElementById('settings-logo-input').click()"
+                      style="margin-bottom: 5px;">اختيار صورة الشعار</button>
+                    <p style="font-size: 11px; color: var(--text-muted); margin: 0;">يتم ضغط الصورة وحفظها تلقائياً كـ
+                      Base64.</p>
                   </div>
                 </div>
               </div>
-              
+
               <button class="btn btn-primary btn-block" onclick="saveBrandSettings()">
                 حفظ تفاصيل الهوية
               </button>
@@ -322,12 +355,13 @@
             <div class="configs-card" style="margin-top: 20px;">
               <div class="configs-card-header">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 </svg>
                 <h4>إدارة النسخ الاحتياطي الكامل للنظام (JSON)</h4>
               </div>
-              <p class="configs-subtitle">قم بتصدير نسخة احتياطية كاملة من قاعدة البيانات (.json) لحمايتها من الفقدان في حال مسح ملفات تعريف المتصفح، أو لاستعادتها لاحقاً.</p>
-              
+              <p class="configs-subtitle">قم بتصدير نسخة احتياطية كاملة من قاعدة البيانات (.json) لحمايتها من الفقدان في
+                حال مسح ملفات تعريف المتصفح، أو لاستعادتها لاحقاً.</p>
+
               <div style="display: flex; flex-direction: column; gap: 10px;">
                 <button class="btn btn-secondary btn-block" onclick="exportFullBackupJSON()">
                   تصدير نسخة كاملة (.json)
@@ -335,27 +369,31 @@
                 <button class="btn btn-secondary btn-block" onclick="triggerFullBackupImport()">
                   استيراد نسخة كاملة (.json)
                 </button>
-                <input type="file" id="backup-import-input" accept=".json" style="display:none;" onchange="handleFullBackupImport(event)">
+                <input type="file" id="backup-import-input" accept=".json" style="display:none;"
+                  onchange="handleFullBackupImport(event)">
               </div>
             </div>
 
           </div>
-          
+
         </div>
       </section>
 
       <!-- VIEW 4: REPORTS & SALES HISTORY -->
       <section id="view-reports" class="tab-view">
         <div class="reports-container">
-          
+
           <!-- Reports Date Filtering Bar -->
           <div class="reports-filter-bar">
             <div class="filter-options">
-              <button class="filter-btn active" id="btn-rep-filter-all" onclick="setReportsFilter('all')">كل المبيعات</button>
-              <button class="filter-btn" id="btn-rep-filter-today" onclick="setReportsFilter('today')">مبيعات اليوم</button>
-              <button class="filter-btn" id="btn-rep-filter-custom" onclick="setReportsFilter('custom')">فترة مخصصة</button>
+              <button class="filter-btn active" id="btn-rep-filter-all" onclick="setReportsFilter('all')">كل
+                المبيعات</button>
+              <button class="filter-btn" id="btn-rep-filter-today" onclick="setReportsFilter('today')">مبيعات
+                اليوم</button>
+              <button class="filter-btn" id="btn-rep-filter-custom" onclick="setReportsFilter('custom')">فترة
+                مخصصة</button>
             </div>
-            
+
             <div class="custom-date-inputs" id="reports-date-inputs" style="display: none;">
               <div class="date-input-group">
                 <label for="rep-start-date">من تاريخ:</label>
@@ -367,7 +405,7 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Summary Dashboard Cards -->
           <div class="reports-summary-grid">
             <div class="report-summary-card">
@@ -423,11 +461,11 @@
               <div class="receipt-preview-placeholder" id="receipt-preview-container">
                 <div class="placeholder-msg">
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <line x1="16" y1="13" x2="8" y2="13"/>
-                    <line x1="16" y1="17" x2="8" y2="17"/>
-                    <polyline points="10 9 9 9 8 9"/>
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10 9 9 9 8 9" />
                   </svg>
                   <p>اختر فاتورة من سجل الفواتير على اليمين لاستعراض تفاصيلها وطباعة الإيصال.</p>
                 </div>
@@ -435,6 +473,125 @@
             </div>
           </div>
 
+        </div>
+      </section>
+
+      <!-- VIEW 5: TABLE RESERVATIONS -->
+      <section id="view-reservations" class="tab-view">
+        <!-- Stats Summary Bar -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon-wrapper active-tables"
+              style="background-color: rgba(52, 152, 219, 0.08); color: #3498db;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">إجمالي حجوزات اليوم</span>
+              <h3 class="stat-value" id="stat-res-today">0 حجز</h3>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon-wrapper revenue" style="background-color: rgba(16, 185, 129, 0.08); color: #10b981;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">الحجوزات المؤكدة</span>
+              <h3 class="stat-value text-gold" id="stat-res-confirmed" style="color: #10b981 !important;">0 حجز</h3>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon-wrapper completed-orders"
+              style="background-color: rgba(245, 158, 11, 0.08); color: #f59e0b;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">قيد الانتظار</span>
+              <h3 class="stat-value" id="stat-res-pending" style="color: #f59e0b !important;">0 حجز</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter and Control Bar -->
+        <div class="filter-bar" style="flex-wrap: wrap; gap: 15px;">
+          <div class="filter-group">
+            <button class="filter-btn active" id="res-filter-status-all"
+              onclick="filterReservationsByStatus('all')">الكل</button>
+            <button class="filter-btn" id="res-filter-status-pending"
+              onclick="filterReservationsByStatus('pending')">قيد الانتظار</button>
+            <button class="filter-btn" id="res-filter-status-confirmed"
+              onclick="filterReservationsByStatus('confirmed')">مؤكدة</button>
+            <button class="filter-btn" id="res-filter-status-seated" onclick="filterReservationsByStatus('seated')">تم
+              الجلوس</button>
+            <button class="filter-btn" id="res-filter-status-cancelled"
+              onclick="filterReservationsByStatus('cancelled')">ملغاة</button>
+          </div>
+
+          <!-- Date Filtering Inputs -->
+          <div
+            style="display: flex; align-items: center; gap: 8px; background: var(--bg-secondary); padding: 6px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
+            <label for="res-filter-date"
+              style="font-size: 13px; font-weight: 600; color: var(--text-muted);">التاريخ:</label>
+            <input type="date" id="res-filter-date" onchange="filterReservations()"
+              style="font-size: 13px; border: none; outline: none; background: transparent; color: var(--text-main);">
+            <button class="btn btn-secondary btn-xs" onclick="setReservationDateFilter('today')"
+              style="padding: 4px 8px; font-size: 11px; margin-right: 5px;">اليوم</button>
+            <button class="btn btn-secondary btn-xs" onclick="setReservationDateFilter('all')"
+              style="padding: 4px 8px; font-size: 11px;">الكل</button>
+          </div>
+
+          <div class="search-box-wrapper" style="max-width: 250px; flex-grow: 1;">
+            <input type="text" id="res-search-input" placeholder="ابحث باسم الزبون أو الهاتف..."
+              oninput="filterReservations()" style="width: 100%;">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </div>
+
+          <div class="action-group" style="margin-right: auto;">
+            <button class="btn btn-primary" onclick="openAddReservationModal()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 5v14M5 12h14" />
+              </svg>
+              إضافة حجز جديد
+            </button>
+          </div>
+        </div>
+
+        <!-- Reservations List Table -->
+        <div class="tables-settings-container" style="margin-top: 20px;">
+          <div class="tables-list-table-wrapper">
+            <table class="premium-table">
+              <thead>
+                <tr>
+                  <th>اسم الزبون</th>
+                  <th>رقم الهاتف</th>
+                  <th>التاريخ والوقت</th>
+                  <th>رقم الطاولة</th>
+                  <th>عدد الأفراد</th>
+                  <th>ملاحظات</th>
+                  <th>الحالة</th>
+                  <th>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="reservations-list-body">
+                <!-- Rendered dynamically via JS -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -456,7 +613,7 @@
 
       <!-- Content wrapper depends on status (available vs occupied) -->
       <div class="slide-content" id="slide-content-area">
-        
+
         <!-- INITIAL STATE: TABLE IS AVAILABLE -->
         <div id="slide-state-available" class="slide-state-panel active">
           <div class="empty-table-visual">
@@ -485,14 +642,14 @@
         <!-- ACTIVE STATE: TABLE IS OCCUPIED / ORDER ACTIVE -->
         <div id="slide-state-occupied" class="slide-state-panel">
           <div class="occupied-order-layout">
-            
+
             <!-- Left Side of Split: Active Cart -->
             <div class="active-cart-section">
               <div class="cart-header">
                 <h4>الطلبات الحالية</h4>
                 <span class="items-count-badge" id="cart-items-count">0 عناصر</span>
               </div>
-              
+
               <div class="cart-items-list" id="cart-items-container">
                 <!-- Rendered dynamically -->
                 <div class="cart-empty-state">
@@ -536,9 +693,12 @@
               <div class="fast-menu-header">
                 <div class="fast-menu-search">
                   <input type="text" id="fast-menu-search-input" placeholder="ابحث بسرعة..." oninput="filterFastMenu()">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
                 </div>
-                
+
                 <div class="fast-categories-tab" id="fast-menu-categories-tabs">
                   <!-- Rendered dynamically e.g. [الكل, مقبلات, رئيسي...] -->
                 </div>
@@ -610,13 +770,20 @@
           <div class="form-group">
             <label for="product-form-color">لون أيقونة المنتج (للتمييز البصري)</label>
             <div class="color-picker-grid">
-              <label class="color-radio" style="background-color: #d4af37;"><input type="radio" name="prod-color" value="#d4af37" checked></label>
-              <label class="color-radio" style="background-color: #c0392b;"><input type="radio" name="prod-color" value="#c0392b"></label>
-              <label class="color-radio" style="background-color: #2ecc71;"><input type="radio" name="prod-color" value="#2ecc71"></label>
-              <label class="color-radio" style="background-color: #3498db;"><input type="radio" name="prod-color" value="#3498db"></label>
-              <label class="color-radio" style="background-color: #e67e22;"><input type="radio" name="prod-color" value="#e67e22"></label>
-              <label class="color-radio" style="background-color: #8e44ad;"><input type="radio" name="prod-color" value="#8e44ad"></label>
-              <label class="color-radio" style="background-color: #7f8c8d;"><input type="radio" name="prod-color" value="#7f8c8d"></label>
+              <label class="color-radio" style="background-color: #d4af37;"><input type="radio" name="prod-color"
+                  value="#d4af37" checked></label>
+              <label class="color-radio" style="background-color: #c0392b;"><input type="radio" name="prod-color"
+                  value="#c0392b"></label>
+              <label class="color-radio" style="background-color: #2ecc71;"><input type="radio" name="prod-color"
+                  value="#2ecc71"></label>
+              <label class="color-radio" style="background-color: #3498db;"><input type="radio" name="prod-color"
+                  value="#3498db"></label>
+              <label class="color-radio" style="background-color: #e67e22;"><input type="radio" name="prod-color"
+                  value="#e67e22"></label>
+              <label class="color-radio" style="background-color: #8e44ad;"><input type="radio" name="prod-color"
+                  value="#8e44ad"></label>
+              <label class="color-radio" style="background-color: #7f8c8d;"><input type="radio" name="prod-color"
+                  value="#7f8c8d"></label>
             </div>
           </div>
         </div>
@@ -693,9 +860,15 @@
           </div>
         </div>
 
-        <div class="discount-input-container" style="margin: 15px 0; background: rgba(25, 59, 35, 0.04); border: 1px solid rgba(25, 59, 35, 0.1); border-radius: 8px; padding: 12px;">
-          <label for="checkout-discount-input" style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #193B23;">تطبيق حسم مالي مباشر على الفاتورة (ل.س):</label>
-          <input type="number" id="checkout-discount-input" min="0" value="0" placeholder="مثال: 5000" class="form-control" style="width: 100%; padding: 10px; border: 1px solid rgba(0,0,0,0.15); border-radius: 6px; font-size: 14px;" oninput="updateCheckoutDiscount()">
+        <div class="discount-input-container"
+          style="margin: 15px 0; background: rgba(25, 59, 35, 0.04); border: 1px solid rgba(25, 59, 35, 0.1); border-radius: 8px; padding: 12px;">
+          <label for="checkout-discount-input"
+            style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #193B23;">تطبيق حسم
+            مالي مباشر على الفاتورة (ل.س):</label>
+          <input type="number" id="checkout-discount-input" min="0" value="0" placeholder="مثال: 5000"
+            class="form-control"
+            style="width: 100%; padding: 10px; border: 1px solid rgba(0,0,0,0.15); border-radius: 6px; font-size: 14px;"
+            oninput="updateCheckoutDiscount()">
         </div>
 
         <div class="payment-method-selector">
@@ -704,14 +877,20 @@
             <label class="payment-method-card">
               <input type="radio" name="payment-method" value="نقد شاش (Cash)" checked>
               <div class="card-box">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="6" width="20" height="12" rx="2" />
+                  <circle cx="12" cy="12" r="2" />
+                </svg>
                 <span>دفع نقدي (Cash)</span>
               </div>
             </label>
             <label class="payment-method-card">
               <input type="radio" name="payment-method" value="بطاقة شبكة (Card)">
               <div class="card-box">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="1" y="4" width="22" height="16" rx="2" />
+                  <line x1="1" y1="10" x2="23" y2="10" />
+                </svg>
                 <span>بطاقة مدى / شبكة</span>
               </div>
             </label>
@@ -726,6 +905,64 @@
       </div>
     </div>
   </div>
+  <!-- 5. RESERVATION MODAL (ADD / EDIT) -->
+  <div class="modal-backdrop" id="modal-reservation" onclick="closeModal('modal-reservation')">
+    <div class="modal-content modal-medium" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h4 id="reservation-modal-title">إضافة حجز جديد</h4>
+        <button class="btn-close" onclick="closeModal('modal-reservation')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="reservation-form-id">
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="reservation-form-name">اسم الزبون</label>
+            <input type="text" id="reservation-form-name" placeholder="أدخل اسم الزبون..." required autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="reservation-form-phone">رقم الهاتف</label>
+            <input type="text" id="reservation-form-phone" placeholder="مثال: 09xxxxxxxx" required autocomplete="off">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="reservation-form-date">تاريخ الحجز</label>
+            <input type="date" id="reservation-form-date" required>
+          </div>
+          <div class="form-group">
+            <label for="reservation-form-time">وقت الحجز</label>
+            <input type="time" id="reservation-form-time" required>
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="reservation-form-table">اختر الطاولة (اختياري)</label>
+            <select id="reservation-form-table">
+              <!-- Will be populated dynamically with list of tables -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="reservation-form-guests">عدد الأفراد (عدد المقاعد المطلوبة)</label>
+            <input type="number" id="reservation-form-guests" min="1" max="50" placeholder="مثال: 4" value="4">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reservation-form-notes">ملاحظات وطلبات خاصة</label>
+          <textarea id="reservation-form-notes" placeholder="أي ملاحظات إضافية مثل: طاولة قرب النافذة، حجز عيد ميلاد..."
+            rows="3"
+            style="width: 100%; border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 8px; font-family: var(--font-family); font-size: 14px; background: transparent; color: var(--text-main); outline: none; resize: vertical;"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-reservation')">إلغاء</button>
+        <button class="btn btn-primary" onclick="submitReservationForm()">حفظ الحجز</button>
+      </div>
+    </div>
+  </div>
 
 
   <!-- Scripts -->
@@ -735,4 +972,5 @@
   <script src="database.js"></script>
   <script src="app.js"></script>
 </body>
+
 </html>

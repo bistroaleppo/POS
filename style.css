@@ -2154,4 +2154,38 @@ input, select, textarea, button {
   opacity: 0.5;
 }
 
+/* Table Reservations Styling */
+.status-indicator-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.status-indicator-badge.badge-pending {
+  background-color: rgba(245, 158, 11, 0.08);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.status-indicator-badge.badge-confirmed {
+  background-color: rgba(52, 152, 219, 0.08);
+  color: #3498db;
+  border: 1px solid rgba(52, 152, 219, 0.2);
+}
+
+.status-indicator-badge.badge-seated {
+  background-color: rgba(16, 185, 129, 0.08);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.status-indicator-badge.badge-cancelled {
+  background-color: rgba(239, 68, 68, 0.08);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
 

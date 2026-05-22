@@ -136,14 +136,36 @@ class BistroDatabase {
 
   // --- GENERIC HELPER CRUD METHODS ---
 
-  getAll(storeName) {
+  getAll(storeName, forceServer = false) {
     return new Promise(async (resolve) => {
       if (!this.firestore) {
         resolve([]);
         return;
       }
+
+      // If forceServer is true (e.g. after a save operation), skip cache entirely
+      // to guarantee the freshly written data is returned immediately.
+      if (!forceServer) {
+        try {
+          const snapshot = await this.firestore.collection(storeName).get({ source: 'cache' });
+          const data = [];
+          snapshot.forEach(doc => {
+            data.push({ id: doc.id, ...doc.data() });
+          });
+
+          if (data.length > 0) {
+            resolve(data);
+            // Silently update cache in background
+            this.firestore.collection(storeName).get({ source: 'server' }).catch(() => {});
+            return;
+          }
+        } catch (cacheError) {
+          // Cache empty or unavailable, fall through to server fetch
+        }
+      }
+
       try {
-        const snapshot = await this.firestore.collection(storeName).get();
+        const snapshot = await this.firestore.collection(storeName).get({ source: 'server' });
         const data = [];
         snapshot.forEach(doc => {
           data.push({ id: doc.id, ...doc.data() });
@@ -162,6 +184,20 @@ class BistroDatabase {
         resolve(null);
         return;
       }
+      try {
+        // Try reading from cache first for instant retrieval
+        const doc = await this.firestore.collection(storeName).doc(String(key)).get({ source: 'cache' });
+        if (doc.exists) {
+          resolve({ id: doc.id, ...doc.data() });
+          
+          // Silently trigger background fetch from server to update cache
+          this.firestore.collection(storeName).doc(String(key)).get({ source: 'server' }).catch(() => {});
+          return;
+        }
+      } catch (cacheError) {
+        // Cache is empty or failed, proceed to server fetch
+      }
+
       try {
         const doc = await this.firestore.collection(storeName).doc(String(key)).get();
         if (doc.exists) {
@@ -309,12 +345,16 @@ class BistroDatabase {
   }
 
   async updateTableStatus(id, status) {
-    const table = await this.get('tables', id);
-    if (table) {
-      table.status = status;
-      return this.put('tables', table);
+    // Use Firestore update() to patch only the status field directly,
+    // eliminating the costly read-then-write round-trip.
+    if (!this.firestore) return null;
+    try {
+      await this.firestore.collection('tables').doc(String(id)).update({ status });
+      return true;
+    } catch (error) {
+      console.error(`Firebase error updating table status for ${id}:`, error);
+      return null;
     }
-    return null;
   }
 
   // 4. Active Orders CRUD
@@ -344,6 +384,22 @@ class BistroDatabase {
 
   async clearSalesHistory() {
     return this.clearStore('sales_history');
+  }
+
+  // 6. Reservations CRUD
+  async getReservations() {
+    return this.getAll('reservations');
+  }
+
+  async saveReservation(reservation) {
+    if (!reservation.id) {
+      reservation.id = 'res-' + Date.now();
+    }
+    return this.put('reservations', reservation);
+  }
+
+  async deleteReservation(id) {
+    return this.delete('reservations', id);
   }
 }
 

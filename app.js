@@ -5,6 +5,8 @@ const state = {
   categories: [],
   products: [],
   salesHistory: [],
+  reservations: [],
+  activeOrders: {},    // In-memory cache of active orders keyed by tableId for instant dashboard rendering
 
   // Selections
   activeTab: 'dashboard',
@@ -12,6 +14,8 @@ const state = {
   selectedCategoryFilter: 'all', // For menu manager
   selectedFastCategoryFilter: 'all', // For slide-over quick picker
   activeTableFilter: 'all', // For dashboard tables grid
+  activeReservationFilter: 'all',
+  activeReservationDateFilter: 'today',
   taxRate: 15,
 
   // Reports Page Filter
@@ -66,10 +70,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 6. Load data from DB into state (handles fallback to empty gracefully)
     await refreshStateData();
 
-    // 7. Check Daily Backup Warning
+    // 6.1 Attach real-time listener for settings so remote changes propagate immediately
+    try {
+      if (state.db && state.db.firestore) {
+        console.log('Attaching settings realtime listener...');
+        state.db.firestore.collection('settings').onSnapshot(snapshot => {
+          console.log('Settings snapshot received:', snapshot.size);
+          const settings = [];
+          snapshot.forEach(doc => settings.push({ id: doc.id, ...doc.data() }));
+
+          console.log('Parsed settings docs:', settings);
+
+          const taxRateSetting = settings.find(s => s.id === 'tax_rate');
+          if (taxRateSetting) state.taxRate = parseFloat(taxRateSetting.value);
+
+          const brandNameSetting = settings.find(s => s.id === 'restaurant_name');
+          if (brandNameSetting) state.restaurantName = brandNameSetting.value;
+
+          const brandSloganSetting = settings.find(s => s.id === 'restaurant_slogan');
+          if (brandSloganSetting) state.restaurantSlogan = brandSloganSetting.value;
+
+          const brandLogoSetting = settings.find(s => s.id === 'restaurant_logo');
+          if (brandLogoSetting) state.restaurantLogo = brandLogoSetting.value;
+
+          const brandFooterSetting = settings.find(s => s.id === 'restaurant_footer');
+          if (brandFooterSetting) state.restaurantFooter = brandFooterSetting.value;
+
+          // Update UI from newest state
+          updateBrandUI();
+          updateGlobalStatsUI();
+        }, err => console.error('Settings realtime listener failed:', err));
+      }
+    } catch (err) {
+      console.warn('Could not attach settings listener:', err);
+    }
+
+    // 7. Render dashboard immediately now that all state data is loaded
+    renderDashboard();
+
+    // 8. Check Daily Backup Warning
     checkDailyBackupReminder();
 
-    console.log('Bistro POS initialized successfully.');
+    console.log('POS initialized successfully.');
   } catch (error) {
     console.error('Initialization failed:', error);
     alert('حدث خطأ أثناء تحميل قاعدة البيانات. يرجى التحقق من إعدادات Firebase والاتصال بالإنترنت.');
@@ -79,44 +121,84 @@ document.addEventListener('DOMContentLoaded', async () => {
 /**
  * Refreshes local state arrays from database.
  */
-async function refreshStateData() {
+async function refreshStateData(options = {}) {
   if (!state.db) return;
-  state.tables = await state.db.getTables();
-  state.categories = await state.db.getCategories();
 
-  // Sort categories by custom drag-and-drop sortOrder
-  state.categories.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+  // By default, if no options are specified, we only load tables, and load others ONLY if they are not loaded yet.
+  const loadAll = Object.keys(options).length === 0;
 
-  state.products = await state.db.getProducts();
-  state.salesHistory = await state.db.getSalesHistory();
+  // 1. Tables: load if loadAll, or if tables is explicitly requested, or if state.tables is empty
+  if (loadAll || options.tables || !state.tables || state.tables.length === 0) {
+    state.tables = await state.db.getTables();
+  }
 
-  // Fetch settings (tax rate and dynamic branding parameters)
-  try {
-    const settings = await state.db.getAll('settings');
+  // Active Orders: pre-load at startup so the dashboard renders instantly from state with zero DB calls.
+  // After startup, state.activeOrders is managed purely via in-memory optimistic updates.
+  if (loadAll) {
+    try {
+      const activeOrdersList = await state.db.getAll('active_orders');
+      state.activeOrders = {};
+      activeOrdersList.forEach(ord => { if (ord && ord.tableId) state.activeOrders[ord.tableId] = ord; });
+    } catch (err) {
+      state.activeOrders = state.activeOrders || {};
+    }
+  }
 
-    // Tax Rate
-    const taxRateSetting = settings.find(s => s.id === 'tax_rate');
-    state.taxRate = taxRateSetting ? parseFloat(taxRateSetting.value) : 15;
+  // 2. Categories & Products: load if explicitly requested, or if not loaded yet
+  if (options.menu || !state.categories || state.categories.length === 0) {
+    state.categories = await state.db.getCategories();
+    state.categories.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+  }
+  if (options.menu || !state.products || state.products.length === 0) {
+    state.products = await state.db.getProducts();
+  }
 
-    // Dynamic Brand customization parameters
-    const brandNameSetting = settings.find(s => s.id === 'restaurant_name');
-    state.restaurantName = brandNameSetting ? brandNameSetting.value : 'Restaurant';
+  // 3. Sales History: load ONLY if explicitly requested (e.g. when on reports tab), or if not loaded yet
+  if (options.sales || !state.salesHistory || state.salesHistory.length === 0) {
+    state.salesHistory = await state.db.getSalesHistory();
+  }
 
-    const brandSloganSetting = settings.find(s => s.id === 'restaurant_slogan');
-    state.restaurantSlogan = brandSloganSetting ? brandSloganSetting.value : 'Welcome';
+  // 4. Reservations: load ONLY if explicitly requested (e.g. when on reservations tab), or if not loaded yet
+  if (options.reservations || !state.reservations || state.reservations.length === 0) {
+    state.reservations = await state.db.getReservations();
+    state.reservations.sort((a, b) => {
+      const dateTimeA = new Date((a.reservationDate || '') + 'T' + (a.reservationTime || '00:00'));
+      const dateTimeB = new Date((b.reservationDate || '') + 'T' + (b.reservationTime || '00:00'));
+      return dateTimeA - dateTimeB;
+    });
+  }
 
-    const brandLogoSetting = settings.find(s => s.id === 'restaurant_logo');
-    state.restaurantLogo = brandLogoSetting ? brandLogoSetting.value : './assets/logo.png';
+  // 5. Settings: load if explicitly requested, or if not loaded yet.
+  // When explicitly requested (i.e. after a save), force-read from the server to bypass
+  // stale cache and ensure the newly saved values are immediately reflected in the UI.
+  if (options.settings || state.taxRate === undefined) {
+    try {
+      const settings = await state.db.getAll('settings', !!options.settings);
 
-    const brandFooterSetting = settings.find(s => s.id === 'restaurant_footer');
-    state.restaurantFooter = brandFooterSetting ? brandFooterSetting.value : 'Have a nice day!';
-  } catch (err) {
-    console.error('Failed to load settings from DB. Applying defaults:', err);
-    state.taxRate = 15;
-    state.restaurantName = 'Restaurant';
-    state.restaurantSlogan = 'Welcome';
-    state.restaurantLogo = './assets/logo.png';
-    state.restaurantFooter = 'Have a nice day!';
+      // Tax Rate
+      const taxRateSetting = settings.find(s => s.id === 'tax_rate');
+      state.taxRate = taxRateSetting ? parseFloat(taxRateSetting.value) : 15;
+
+      // Dynamic Brand customization parameters
+      const brandNameSetting = settings.find(s => s.id === 'restaurant_name');
+      state.restaurantName = brandNameSetting ? brandNameSetting.value : 'Restaurant';
+
+      const brandSloganSetting = settings.find(s => s.id === 'restaurant_slogan');
+      state.restaurantSlogan = brandSloganSetting ? brandSloganSetting.value : 'Welcome';
+
+      const brandLogoSetting = settings.find(s => s.id === 'restaurant_logo');
+      state.restaurantLogo = brandLogoSetting ? brandLogoSetting.value : './assets/logo.png';
+
+      const brandFooterSetting = settings.find(s => s.id === 'restaurant_footer');
+      state.restaurantFooter = brandFooterSetting ? brandFooterSetting.value : 'Have a nice day!';
+    } catch (err) {
+      console.error('Failed to load settings from DB. Applying defaults:', err);
+      state.taxRate = 15;
+      state.restaurantName = 'Restaurant';
+      state.restaurantSlogan = 'Welcome';
+      state.restaurantLogo = './assets/logo.png';
+      state.restaurantFooter = 'Have a nice day!';
+    }
   }
 
   // Populate UI inputs with settings values
@@ -166,7 +248,7 @@ function initClock() {
 // Navigation & Tab Switching
 // ==========================================================================
 
-function switchTab(tabId) {
+async function switchTab(tabId) {
   state.activeTab = tabId;
 
   // 1. Update navigation button states
@@ -187,22 +269,34 @@ function switchTab(tabId) {
     case 'dashboard':
       tabTitle.textContent = 'الصالة وإدارة الطاولات';
       tabDesc.textContent = 'نظرة عامة على حالة الطاولات والطلبات النشطة في الصالة والتحكم بها.';
-      renderDashboard();
+      await renderDashboard();
       break;
     case 'menu':
       tabTitle.textContent = 'قائمة الطعام';
       tabDesc.textContent = 'إدارة وتعديل أطعمة ومشروبات المطعم، إضافة منتجات جديدة أو تصنيفات.';
+      await refreshStateData({ menu: true });
       renderMenuManager();
       break;
     case 'tables':
       tabTitle.textContent = 'إدارة طاولات الصالة';
       tabDesc.textContent = 'إضافة وتعديل طاولات المطعم وسعتها المقعدية.';
+      await refreshStateData({ tables: true });
       renderTablesSettings();
       break;
     case 'reports':
       tabTitle.textContent = 'الفواتير والتقارير المالية';
       tabDesc.textContent = 'مراجعة المبيعات الإجمالية اليومية، واستعراض فواتير الدفع المكتملة.';
+      // Only fetch from DB on first visit; after a checkout the sale is already in state.salesHistory
+      if (!state.salesHistory || state.salesHistory.length === 0) {
+        await refreshStateData({ sales: true });
+      }
       renderReports();
+      break;
+    case 'reservations':
+      tabTitle.textContent = 'حجز الطاولات';
+      tabDesc.textContent = 'إدارة الحجوزات المسبقة للطاولات وتنسيق حضور وجلوس الزبائن.';
+      await refreshStateData({ reservations: true });
+      renderReservations();
       break;
   }
 }
@@ -266,14 +360,13 @@ function updateGlobalStatsUI() {
 // 1. Dashboard View - Tables Grid
 // ==========================================================================
 
-async function renderDashboard() {
-  await refreshStateData();
+// Pure synchronous render - reads only from state (zero DB calls, zero latency).
+function renderDashboard() {
   const gridContainer = document.getElementById('tables-grid-container');
   if (!gridContainer) return;
 
   gridContainer.innerHTML = '';
 
-  // Filter tables based on active state filter
   const filteredTables = state.tables.filter(tbl => {
     if (state.activeTableFilter === 'all') return true;
     return tbl.status === state.activeTableFilter;
@@ -284,19 +377,19 @@ async function renderDashboard() {
     return;
   }
 
-  // Render each table card
+  const activeOrdersMap = state.activeOrders || {};
+
   for (const tbl of filteredTables) {
     const card = document.createElement('div');
     card.className = `table-card ${tbl.status}`;
     card.onclick = () => openOrderSlideOver(tbl.id);
 
-    // Fetch current active order to display sum
     let orderAmountHtml = '';
     let timeElapsedHtml = '';
 
     if (tbl.status !== 'available') {
-      const activeOrder = await state.db.getActiveOrder(tbl.id);
-      if (activeOrder && activeOrder.items.length > 0) {
+      const activeOrder = activeOrdersMap[tbl.id];
+      if (activeOrder && activeOrder.items && activeOrder.items.length > 0) {
         const subtotal = activeOrder.items.reduce((sum, item) => {
           const itemTotal = item.isHospitality ? 0 : (item.price * item.quantity);
           return sum + itemTotal;
@@ -308,7 +401,6 @@ async function renderDashboard() {
         orderAmountHtml = `<div class="table-order-amount">${formatCurrency(0)}</div>`;
       }
 
-      // Calculate elapsed time since start
       if (activeOrder && activeOrder.startTime) {
         const elapsedMin = Math.round((Date.now() - activeOrder.startTime) / 60000);
         timeElapsedHtml = `
@@ -358,7 +450,7 @@ function openAddTableQuickModal() {
 // 2. Order Slide-Over Panel Logic (POS Screen)
 // ==========================================================================
 
-async function openOrderSlideOver(tableId) {
+function openOrderSlideOver(tableId) {
   state.selectedTableId = tableId;
   const table = state.tables.find(t => t.id === tableId);
   if (!table) return;
@@ -387,8 +479,8 @@ async function openOrderSlideOver(tableId) {
     availablePanel.classList.remove('active');
     occupiedPanel.classList.add('active');
 
-    // Load Active Order into state.currentCart draft
-    const activeOrder = await state.db.getActiveOrder(tableId);
+    // Load Active Order from in-memory state (no DB call needed)
+    const activeOrder = (state.activeOrders || {})[tableId];
     if (activeOrder) {
       state.currentCart.items = activeOrder.items || [];
       state.currentCart.customerName = activeOrder.customerName || '';
@@ -434,7 +526,6 @@ async function startNewTableOrder() {
   const customerName = document.getElementById('order-customer-name').value.trim() || 'زبون عام';
   const customerCount = parseInt(document.getElementById('order-guest-count').value) || 2;
 
-  // 1. Create order object
   const newOrder = {
     tableId: state.selectedTableId,
     items: [],
@@ -443,17 +534,26 @@ async function startNewTableOrder() {
     startTime: Date.now()
   };
 
-  // 2. Save active order to IndexedDB
-  await state.db.saveActiveOrder(state.selectedTableId, newOrder);
+  // 1. Optimistic state update - update memory FIRST for instant UI response
+  const table = state.tables.find(t => t.id === state.selectedTableId);
+  if (table) table.status = 'occupied';
+  if (!state.activeOrders) state.activeOrders = {};
+  state.activeOrders[state.selectedTableId] = newOrder;
+  state.currentCart.items = [];
+  state.currentCart.customerName = customerName;
+  state.currentCart.customerCount = customerCount;
+  state.currentCart.startTime = newOrder.startTime;
 
-  // 3. Update table status to occupied
-  await state.db.updateTableStatus(state.selectedTableId, 'occupied');
-
-  // 4. Update memory state arrays
-  await refreshStateData();
-
-  // 5. Reload Slideover with occupied view active
+  // 2. Open the occupied panel immediately - no DB wait
   openOrderSlideOver(state.selectedTableId);
+
+  // 3. Fire DB writes in background - non-blocking
+  state.db.saveActiveOrder(state.selectedTableId, newOrder).catch(err =>
+    console.error('Background save active order failed:', err)
+  );
+  state.db.updateTableStatus(state.selectedTableId, 'occupied').catch(err =>
+    console.error('Background update table status failed:', err)
+  );
 }
 
 /**
@@ -684,18 +784,29 @@ function removeCartItem(index) {
 async function saveCurrentOrderState() {
   if (!state.selectedTableId) return;
 
-  const activeOrder = await state.db.getActiveOrder(state.selectedTableId);
+  // 1. Update in-memory state immediately
+  const activeOrder = (state.activeOrders || {})[state.selectedTableId];
   if (activeOrder) {
-    activeOrder.items = state.currentCart.items;
-    await state.db.saveActiveOrder(state.selectedTableId, activeOrder);
+    activeOrder.items = [...state.currentCart.items];
 
-    // If table was billing but they modified/saved items, let's keep status as is or make occupied.
-    // It's usually better to keep occupied.
-    if (state.tables.find(t => t.id === state.selectedTableId).status === 'billing') {
-      await state.db.updateTableStatus(state.selectedTableId, 'occupied');
+    const table = state.tables.find(t => t.id === state.selectedTableId);
+    if (table && table.status === 'billing') {
+      table.status = 'occupied';
     }
 
-    await refreshStateData();
+    // 2. Close slideover immediately - renderDashboard is now instant
+    closeOrderSlideOver();
+
+    // 3. Fire DB writes in background - non-blocking
+    state.db.saveActiveOrder(state.selectedTableId, activeOrder).catch(err =>
+      console.error('Background save order failed:', err)
+    );
+    if (table && table.status === 'occupied') {
+      state.db.updateTableStatus(state.selectedTableId, 'occupied').catch(err =>
+        console.error('Background update table status failed:', err)
+      );
+    }
+  } else {
     closeOrderSlideOver();
   }
 }
@@ -706,18 +817,27 @@ async function saveCurrentOrderState() {
 async function markTableForBilling() {
   if (!state.selectedTableId) return;
 
-  // 1. Save current items list draft first
-  const activeOrder = await state.db.getActiveOrder(state.selectedTableId);
+  // 1. Update in-memory state immediately
+  const activeOrder = (state.activeOrders || {})[state.selectedTableId];
   if (activeOrder) {
-    activeOrder.items = state.currentCart.items;
-    await state.db.saveActiveOrder(state.selectedTableId, activeOrder);
+    activeOrder.items = [...state.currentCart.items];
   }
 
-  // 2. Toggle status to billing
-  await state.db.updateTableStatus(state.selectedTableId, 'billing');
-  await refreshStateData();
+  const table = state.tables.find(t => t.id === state.selectedTableId);
+  if (table) table.status = 'billing';
 
+  // 2. Close slideover immediately
   closeOrderSlideOver();
+
+  // 3. Fire DB writes in background - non-blocking
+  if (activeOrder) {
+    state.db.saveActiveOrder(state.selectedTableId, activeOrder).catch(err =>
+      console.error('Background save billing order failed:', err)
+    );
+  }
+  state.db.updateTableStatus(state.selectedTableId, 'billing').catch(err =>
+    console.error('Background update billing status failed:', err)
+  );
 }
 
 // ==========================================================================
@@ -844,16 +964,15 @@ function updateCheckoutDiscount() {
  */
 async function executeCheckout() {
   if (!state.selectedTableId) return;
-  const table = state.tables.find(t => t.id === state.selectedTableId);
+  const tableId = state.selectedTableId;
+  const table = state.tables.find(t => t.id === tableId);
   if (!table) return;
 
   const pMethod = document.querySelector('input[name="payment-method"]:checked').value;
 
-  // Get discount
   const discountInput = document.getElementById('checkout-discount-input');
   const discount = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
 
-  // Calculate subtotal excluding hospitality items
   let subtotal = 0;
   state.currentCart.items.forEach(item => {
     const originalTotal = item.price * item.quantity;
@@ -866,12 +985,16 @@ async function executeCheckout() {
   const tax = netSubtotal * (taxRate / 100);
   const total = netSubtotal + tax;
 
-  // 1. Prepare completed sale payload
+  // Pre-generate invoice ID locally so the UI does not wait for any DB round-trip
+  const invoiceId = String(Date.now());
+
   const saleRecord = {
+    id: invoiceId,
+    timestamp: Date.now(),
     tableNumber: table.number,
     customerName: state.currentCart.customerName,
     guestCount: state.currentCart.customerCount,
-    items: JSON.parse(JSON.stringify(state.currentCart.items)), // Deep copy to preserve isHospitality status
+    items: JSON.parse(JSON.stringify(state.currentCart.items)),
     subtotal: subtotal,
     discount: discount,
     taxRate: taxRate,
@@ -882,28 +1005,28 @@ async function executeCheckout() {
     endTime: Date.now()
   };
 
-  // 2. Save in database sales_history
-  const invoiceId = await state.db.addSale(saleRecord);
+  // 1. Optimistic state update - update memory FIRST so every dependent render is instant
+  table.status = 'available';
+  if (state.activeOrders) delete state.activeOrders[tableId];
+  if (!state.salesHistory) state.salesHistory = [];
+  state.salesHistory.push(saleRecord);
+  updateGlobalStatsUI();
 
-  // 3. Clear active order for this table
-  await state.db.clearActiveOrder(state.selectedTableId);
-
-  // 4. Release table back to available
-  await state.db.updateTableStatus(state.selectedTableId, 'available');
-
-  // 5. Update UI states and close slide-over
+  // 2. Close modals and slideover IMMEDIATELY (renderDashboard is now synchronous)
   closeModal('modal-checkout');
   closeOrderSlideOver();
 
-  await refreshStateData();
-  renderDashboard();
+  // 3. Auto-print receipt immediately
+  printReceiptSlipDirectly(saleRecord, invoiceId);
 
-  // Open reports view and highlight this specific newly created invoice!
+  // 4. Switch to reports and show receipt preview
   switchTab('reports');
   showReceiptPreview(invoiceId);
 
-  // Auto-print receipt on checkout for 80mm thermal printer
-  printReceiptSlipDirectly(saleRecord, invoiceId);
+  // 5. Fire all DB writes in background - completely non-blocking
+  state.db.addSale({ ...saleRecord }).catch(err => console.error('Sale save failed:', err));
+  state.db.clearActiveOrder(tableId).catch(err => console.error('Clear active order failed:', err));
+  state.db.updateTableStatus(tableId, 'available').catch(err => console.error('Update table status failed:', err));
 }
 
 // ==========================================================================
@@ -1019,7 +1142,7 @@ async function reorderCategories(draggedId, targetId) {
   }
 
   // Refresh memory state and render updated lists
-  await refreshStateData();
+  await refreshStateData({ menu: true });
   renderCategoriesList();
 
   // Refresh POS slide-over categories as well to keep them in sync
@@ -1062,7 +1185,7 @@ async function submitCategoryForm() {
 
   await state.db.saveCategory(payload);
   closeModal('modal-category');
-  await refreshStateData();
+  await refreshStateData({ menu: true });
   renderMenuManager();
 }
 
@@ -1072,7 +1195,7 @@ async function deleteCategory(id) {
     if (state.selectedCategoryFilter === id) {
       state.selectedCategoryFilter = 'all';
     }
-    await refreshStateData();
+    await refreshStateData({ menu: true });
     renderMenuManager();
   }
 }
@@ -1200,14 +1323,14 @@ async function submitProductForm() {
 
   await state.db.saveProduct(payload);
   closeModal('modal-product');
-  await refreshStateData();
+  await refreshStateData({ menu: true });
   renderMenuManager();
 }
 
 async function deleteProduct(id) {
   if (confirm('هل أنت متأكد من حذف هذا المنتج نهائياً من المنيو؟')) {
     await state.db.deleteProduct(id);
-    await refreshStateData();
+    await refreshStateData({ menu: true });
     renderMenuManager();
   }
 }
@@ -1298,7 +1421,7 @@ async function submitTableForm() {
 
   await state.db.saveTable(payload);
   closeModal('modal-table');
-  await refreshStateData();
+  await refreshStateData({ tables: true });
 
   if (state.activeTab === 'tables') renderTablesSettings();
   else renderDashboard();
@@ -1315,7 +1438,7 @@ async function deleteTable(id) {
 
   if (confirm(`هل أنت متأكد من حذف طاولة رقم ${tbl.number} نهائياً؟`)) {
     await state.db.deleteTable(id);
-    await refreshStateData();
+    await refreshStateData({ tables: true });
     renderTablesSettings();
   }
 }
@@ -1334,21 +1457,42 @@ async function saveSystemSettings() {
   }
 
   try {
+    // Persist to DB and wait for confirmation. If DB isn't initialized this will throw.
     await state.db.put('settings', { id: 'tax_rate', value: taxRateVal });
-    await refreshStateData();
 
-    // Alert the user with a premium-feeling success message
+    // Update state and reload settings from DB to ensure consistency
+    state.taxRate = taxRateVal;
+    await refreshStateData({ settings: true });
+
     alert('تم حفظ إعدادات النظام وتحديث نسبة الضريبة بنجاح.');
 
-    // Refresh active view if dashboard
-    if (state.activeTab === 'dashboard') {
-      renderDashboard();
-    }
+    if (state.activeTab === 'dashboard') renderDashboard();
   } catch (error) {
     console.error('Failed to save system settings:', error);
-    alert('حدث خطأ أثناء حفظ الإعدادات: ' + error.message);
+    alert('حدث خطأ أثناء حفظ الإعدادات. تأكد من اتصال قاعدة البيانات: ' + (error && error.message ? error.message : error));
   }
 }
+
+/**
+ * Manually refresh settings from server and update UI.
+ */
+async function refreshSettingsNow() {
+  if (!state.db) {
+    alert('قاعدة البيانات غير متصلة، لا يمكن تحديث الإعدادات الآن.');
+    return;
+  }
+
+  try {
+    console.log('Manual settings refresh requested.');
+    await refreshStateData({ settings: true });
+    alert('تم تحديث الإعدادات من الخادم بنجاح.');
+  } catch (err) {
+    console.error('Failed to refresh settings:', err);
+    alert('فشل تحديث الإعدادات: ' + (err && err.message ? err.message : err));
+  }
+}
+
+window.refreshSettingsNow = refreshSettingsNow;
 
 /**
  * Updates UI brand elements according to active state settings.
@@ -1363,24 +1507,30 @@ function updateBrandUI() {
   // 2. Update Sidebar Title
   const sidebarTitle = document.querySelector('.brand-info h1');
   if (sidebarTitle) {
-    sidebarTitle.textContent = `${state.restaurantName || 'Bistro'} POS`;
+    sidebarTitle.textContent = `${state.restaurantName || 'Restaurant'} POS`;
   }
 
   // 3. Update Browser Title
-  document.title = `${state.restaurantName || 'Bistro'} POS | نظام إدارة المطاعم الذكي`;
+  document.title = `${state.restaurantName || 'Restaurant'} POS | نظام إدارة المطاعم الذكي`;
 
   // 4. Update settings form values if they exist in DOM
   const inputName = document.getElementById('settings-brand-name');
-  if (inputName) inputName.value = state.restaurantName || 'BISTRO';
+  if (inputName) inputName.value = (typeof state.restaurantName !== 'undefined') ? state.restaurantName : 'Restaurant';
 
   const inputSlogan = document.getElementById('settings-brand-slogan');
-  if (inputSlogan) inputSlogan.value = state.restaurantSlogan || 'eatery & Social House';
+  if (inputSlogan) inputSlogan.value = (typeof state.restaurantSlogan !== 'undefined') ? state.restaurantSlogan : 'eatery & Social House';
 
   const inputFooter = document.getElementById('settings-brand-footer');
-  if (inputFooter) inputFooter.value = state.restaurantFooter || 'Bistro POS System By Salem Makoukji';
+  if (inputFooter) inputFooter.value = (typeof state.restaurantFooter !== 'undefined') ? state.restaurantFooter : 'Restaurant POS System By Salem Makoukji';
 
   const logoPreview = document.getElementById('settings-logo-preview');
   if (logoPreview) logoPreview.src = state.restaurantLogo || './assets/logo.png';
+
+  // Also keep tax input in sync when brand/settings update comes from DB
+  const taxRateInput = document.getElementById('settings-tax-rate');
+  if (taxRateInput && typeof state.taxRate !== 'undefined') {
+    taxRateInput.value = state.taxRate;
+  }
 
 }
 
@@ -1446,25 +1596,40 @@ function previewLogoFile(event) {
  * Saves Cafe Branding settings to database.
  */
 async function saveBrandSettings() {
-  const nameVal = document.getElementById('settings-brand-name').value.trim() || 'BISTRO';
-  const sloganVal = document.getElementById('settings-brand-slogan').value.trim() || 'eatery & Social House';
-  const footerVal = document.getElementById('settings-brand-footer').value.trim() || 'Bistro POS System By Salem Makoukji';
+  const nameVal = document.getElementById('settings-brand-name').value.trim() || 'Restaurant';
+  const sloganVal = document.getElementById('settings-brand-slogan').value.trim() || '';
+  const footerVal = document.getElementById('settings-brand-footer').value.trim() || '';
 
   try {
-    await state.db.put('settings', { id: 'restaurant_name', value: nameVal });
-    await state.db.put('settings', { id: 'restaurant_slogan', value: sloganVal });
-    await state.db.put('settings', { id: 'restaurant_footer', value: footerVal });
+    // Persist all brand settings and wait for completion so failures surface to the user
+    const ops = [
+      state.db.put('settings', { id: 'restaurant_name', value: nameVal }),
+      state.db.put('settings', { id: 'restaurant_slogan', value: sloganVal }),
+      state.db.put('settings', { id: 'restaurant_footer', value: footerVal })
+    ];
 
     if (uploadedLogoBase64) {
-      await state.db.put('settings', { id: 'restaurant_logo', value: uploadedLogoBase64 });
-      uploadedLogoBase64 = null; // Clear buffer
+      ops.push(state.db.put('settings', { id: 'restaurant_logo', value: uploadedLogoBase64 }));
     }
 
-    await refreshStateData();
+    await Promise.all(ops);
+
+    // Update state and refresh from DB to ensure UI reflects persisted values
+    state.restaurantName = nameVal;
+    state.restaurantSlogan = sloganVal;
+    state.restaurantFooter = footerVal;
+    if (uploadedLogoBase64) {
+      state.restaurantLogo = uploadedLogoBase64;
+      uploadedLogoBase64 = null;
+    }
+
+    await refreshStateData({ settings: true });
+    updateBrandUI();
+
     alert('تم حفظ تفاصيل الهوية وتحديث الشعار بنجاح.');
   } catch (error) {
     console.error('Failed to save brand settings:', error);
-    alert('حدث خطأ أثناء حفظ تفاصيل الهوية: ' + error.message);
+    alert('حدث خطأ أثناء حفظ تفاصيل الهوية. تأكد من اتصال قاعدة البيانات: ' + (error && error.message ? error.message : error));
   }
 }
 
@@ -1672,8 +1837,7 @@ function showReceiptPreview(saleId) {
     <div style="width: 100%; display:flex; flex-direction:column; align-items:center;">
       <div class="restaurant-receipt" id="printable-receipt-element" style="background: #fff; color: #000; padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); width: 100%; max-width: 320px; box-sizing: border-box; font-family: 'Cairo', sans-serif; direction: rtl;">
         <div class="receipt-header" style="text-align: center; margin-bottom: 15px;">
-          <img src="${state.restaurantLogo || './assets/logo.png'}" alt="Logo" style="max-height: 50px; margin-bottom: 8px; border-radius: 4px; display: ${state.restaurantLogo ? 'block' : 'none'}; margin-left: auto; margin-right: auto;">
-          <h2 style="font-size: 24px; font-weight: 800; margin: 0; color: #000; letter-spacing: 1px;">${state.restaurantName || 'BISTRO'}</h2>
+          <h2 style="font-size: 24px; font-weight: 800; margin: 0; color: #000; letter-spacing: 1px;">${state.restaurantName || 'Restaurant'}</h2>
           <p style="font-size: 12px; font-style: italic; margin: 2px 0 0 0; color: #555;">${state.restaurantSlogan || 'eatery & Social House'}</p>
         </div>
         
@@ -1736,12 +1900,12 @@ function showReceiptPreview(saleId) {
         <div style="border-top: 1px dashed #000; margin: 15px 0 10px 0;"></div>
         
         <div class="receipt-footer" style="text-align: center; margin-top: 10px; font-size: 12px;">
-          <p style="font-size: 10px; color: #666; margin: 4px 0 0 0;">${state.restaurantFooter || 'Bistro POS System By Salem Makoukji'}</p>
+          <p style="font-size: 10px; color: #666; margin: 4px 0 0 0;">${state.restaurantFooter || 'Restaurant POS System By Salem Makoukji'}</p>
         </div>
       </div>
       
       <div class="print-receipt-btn-wrapper" style="margin-top: 15px;">
-        <button class="btn btn-primary" onclick="printReceiptSlipById(${sale.id})">
+        <button class="btn btn-primary" onclick="printReceiptSlipById('${sale.id}')">
           طباعة إيصال الفاتورة
         </button>
       </div>
@@ -1928,8 +2092,7 @@ function printReceiptSlipDirectly(sale, invoiceId) {
       <body>
         <div class="restaurant-receipt">
           <div class="receipt-header">
-            <img src="${state.restaurantLogo || './assets/logo.png'}" alt="Logo" style="max-height: 12mm; margin-bottom: 2mm; border-radius: 1mm; display: ${state.restaurantLogo ? 'block' : 'none'}; margin-left: auto; margin-right: auto;">
-            <h2>${state.restaurantName || 'BISTRO'}</h2>
+            <h2>${state.restaurantName || 'Restaurant'}</h2>
             <p>${state.restaurantSlogan || 'eatery & Social House'}</p>
           </div>
           
@@ -1992,7 +2155,7 @@ function printReceiptSlipDirectly(sale, invoiceId) {
           <div class="receipt-divider"></div>
           
           <div class="receipt-footer">
-            <p style="font-size: 9px; color: #555; margin-top: 4px;">${state.restaurantFooter || 'Bistro POS System By Salem Makoukji'}</p>
+            <p style="font-size: 9px; color: #555; margin-top: 4px;">${state.restaurantFooter || 'Restaurant POS System By Salem Makoukji'}</p>
           </div>
         </div>
       </body>
@@ -2010,7 +2173,7 @@ function printReceiptSlipDirectly(sale, invoiceId) {
 }
 
 function printReceiptSlipById(saleId) {
-  const sale = state.salesHistory.find(s => s.id === saleId);
+  const sale = state.salesHistory.find(s => String(s.id) === String(saleId));
   if (sale) {
     printReceiptSlipDirectly(sale, sale.id);
   }
@@ -2019,7 +2182,7 @@ function printReceiptSlipById(saleId) {
 async function confirmClearSalesHistory() {
   if (confirm('تنبيه هام! هل أنت متأكد من رغبتك في حذف سجل المبيعات بالكامل؟ لا يمكن التراجع عن هذا الإجراء.')) {
     await state.db.clearSalesHistory();
-    await refreshStateData();
+    await refreshStateData({ sales: true });
     renderReports();
   }
 }
@@ -2088,6 +2251,7 @@ async function exportFullBackupJSON() {
     const activeOrders = await state.db.getAll('active_orders');
     const salesHistory = await state.db.getAll('sales_history');
     const settings = await state.db.getAll('settings');
+    const reservations = await state.db.getAll('reservations');
 
     const backupData = {
       version: 1.0,
@@ -2097,7 +2261,8 @@ async function exportFullBackupJSON() {
       products,
       active_orders: activeOrders,
       sales_history: salesHistory,
-      settings
+      settings,
+      reservations
     };
 
     const jsonString = JSON.stringify(backupData, null, 2);
@@ -2169,6 +2334,7 @@ async function handleFullBackupImport(event) {
       await state.db.clearStore('active_orders');
       await state.db.clearStore('sales_history');
       await state.db.clearStore('settings');
+      await state.db.clearStore('reservations');
 
       // 2. Insert tables
       for (const tbl of backupData.tables) {
@@ -2203,6 +2369,13 @@ async function handleFullBackupImport(event) {
       if (Array.isArray(backupData.settings)) {
         for (const set of backupData.settings) {
           await state.db.put('settings', set);
+        }
+      }
+
+      // 8. Insert reservations (if any exist in backup)
+      if (Array.isArray(backupData.reservations)) {
+        for (const res of backupData.reservations) {
+          await state.db.put('reservations', res);
         }
       }
 
@@ -2276,3 +2449,349 @@ function applyCustomDateFilter() {
 // Expose new reports filtering functions globally
 window.setReportsFilter = setReportsFilter;
 window.applyCustomDateFilter = applyCustomDateFilter;
+
+// ==========================================================================
+// 5. Table Reservations Module
+// ==========================================================================
+
+function renderReservations() {
+  const tableBody = document.getElementById('reservations-list-body');
+  if (!tableBody) return;
+
+  const localDate = new Date();
+  const year = localDate.getFullYear();
+  const month = String(localDate.getMonth() + 1).padStart(2, '0');
+  const day = String(localDate.getDate()).padStart(2, '0');
+  const todayIso = `${year}-${month}-${day}`;
+
+  // Initialize date filter element value on load
+  const dateFilterInput = document.getElementById('res-filter-date');
+  if (dateFilterInput && !dateFilterInput.value && state.activeReservationDateFilter === 'today') {
+    dateFilterInput.value = todayIso;
+  }
+
+  // Calculate Metrics
+  const todayReservations = state.reservations.filter(res => res.reservationDate === todayIso);
+  const totalCountToday = todayReservations.length;
+  const confirmedCountToday = todayReservations.filter(res => res.status === 'confirmed').length;
+  const pendingCountToday = todayReservations.filter(res => res.status === 'pending').length;
+
+  document.getElementById('stat-res-today').textContent = `${totalCountToday} حجز`;
+  document.getElementById('stat-res-confirmed').textContent = `${confirmedCountToday} حجز`;
+  document.getElementById('stat-res-pending').textContent = `${pendingCountToday} حجز`;
+
+  tableBody.innerHTML = '';
+
+  const activeFiltersSearch = document.getElementById('res-search-input') ? document.getElementById('res-search-input').value.trim().toLowerCase() : '';
+  const filterDateValue = dateFilterInput ? dateFilterInput.value : '';
+
+  // Filter reservations array based on active selections
+  const filtered = state.reservations.filter(res => {
+    // 1. Status Filter
+    if (state.activeReservationFilter !== 'all' && res.status !== state.activeReservationFilter) return false;
+
+    // 2. Date Filter
+    if (state.activeReservationDateFilter === 'today') {
+      if (res.reservationDate !== todayIso) return false;
+    } else if (state.activeReservationDateFilter === 'custom') {
+      if (filterDateValue && res.reservationDate !== filterDateValue) return false;
+    }
+
+    // 3. Search filter (Name or Phone)
+    if (activeFiltersSearch) {
+      const name = String(res.customerName || '').toLowerCase();
+      const phone = String(res.phoneNumber || '').toLowerCase();
+      if (!name.includes(activeFiltersSearch) && !phone.includes(activeFiltersSearch)) return false;
+    }
+
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 20px;">لا توجد أي حجوزات تطابق خيارات التصفية الحالية.</td></tr>`;
+    return;
+  }
+
+  filtered.forEach(res => {
+    const tr = document.createElement('tr');
+
+    // Status Badge Style
+    let statusClass = 'badge-pending';
+    let statusText = 'قيد الانتظار';
+    if (res.status === 'confirmed') {
+      statusClass = 'badge-confirmed';
+      statusText = 'مؤكدة';
+    } else if (res.status === 'seated') {
+      statusClass = 'badge-seated';
+      statusText = 'تم الجلوس';
+    } else if (res.status === 'cancelled') {
+      statusClass = 'badge-cancelled';
+      statusText = 'ملغاة';
+    }
+
+    // Actions
+    let actionButtons = '';
+    if (res.status === 'pending') {
+      actionButtons += `<button class="btn btn-secondary btn-xs" onclick="updateReservationStatus('${res.id}', 'confirmed')" style="margin-left: 4px; background-color: #27ae60; color: white;">تأكيد</button>`;
+      actionButtons += `<button class="btn btn-secondary btn-xs" onclick="updateReservationStatus('${res.id}', 'cancelled')" style="margin-left: 4px; background-color: #c0392b; color: white;">إلغاء</button>`;
+    } else if (res.status === 'confirmed') {
+      actionButtons += `<button class="btn btn-primary btn-xs" onclick="seatReservation('${res.id}')" style="margin-left: 4px; background-color: #193B23; color: white;">حضور وجلوس</button>`;
+      actionButtons += `<button class="btn btn-secondary btn-xs" onclick="updateReservationStatus('${res.id}', 'cancelled')" style="margin-left: 4px; background-color: #c0392b; color: white;">إلغاء</button>`;
+    } else if (res.status === 'cancelled') {
+      actionButtons += `<button class="btn btn-secondary btn-xs" onclick="updateReservationStatus('${res.id}', 'confirmed')" style="margin-left: 4px; background-color: #27ae60; color: white;">إعادة تأكيد</button>`;
+    }
+
+    // Edit and Delete are always available
+    actionButtons += `<button class="btn btn-secondary btn-xs" onclick="openEditReservationModal('${res.id}')" style="margin-left: 4px;">تعديل</button>`;
+    actionButtons += `<button class="btn btn-danger-outline btn-xs" onclick="deleteReservation('${res.id}')">حذف</button>`;
+
+    // Format table name
+    let tableNameStr = 'غير محددة';
+    if (res.tableId) {
+      const associatedTable = state.tables.find(t => t.id === res.tableId);
+      if (associatedTable) {
+        tableNameStr = `طاولة ${associatedTable.number}`;
+      }
+    }
+
+    tr.innerHTML = `
+      <td><strong>${res.customerName}</strong></td>
+      <td>${res.phoneNumber}</td>
+      <td>${res.reservationDate} - ${res.reservationTime}</td>
+      <td><span class="table-badge" style="display:inline-block; padding: 2px 8px; font-size:12px;">${tableNameStr}</span></td>
+      <td>${res.guestCount} فرد</td>
+      <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${res.notes || ''}">${res.notes || '-'}</td>
+      <td><span class="status-indicator-badge ${statusClass}" style="display:inline-block; padding: 4px 10px; border-radius:12px; font-size:12px; font-weight:600;">${statusText}</span></td>
+      <td><div style="display: flex; gap: 4px;">${actionButtons}</div></td>
+    `;
+
+    tableBody.appendChild(tr);
+  });
+}
+
+function filterReservationsByStatus(status) {
+  state.activeReservationFilter = status;
+  document.querySelectorAll('.filter-bar .filter-group .filter-btn').forEach(btn => {
+    if (btn.id.includes('res-filter-status-')) {
+      btn.classList.remove('active');
+    }
+  });
+  const activeBtn = document.getElementById(`res-filter-status-${status}`);
+  if (activeBtn) activeBtn.classList.add('active');
+  renderReservations();
+}
+
+function setReservationDateFilter(mode) {
+  state.activeReservationDateFilter = mode;
+  const dateInput = document.getElementById('res-filter-date');
+  if (mode === 'all') {
+    if (dateInput) dateInput.value = '';
+  } else if (mode === 'today') {
+    const localDate = new Date();
+    const year = localDate.getFullYear();
+    const month = String(localDate.getMonth() + 1).padStart(2, '0');
+    const day = String(localDate.getDate()).padStart(2, '0');
+    const todayIso = `${year}-${month}-${day}`;
+    if (dateInput) dateInput.value = todayIso;
+  }
+  renderReservations();
+}
+
+function filterReservations() {
+  const dateInput = document.getElementById('res-filter-date');
+  if (dateInput && dateInput.value) {
+    state.activeReservationDateFilter = 'custom';
+  } else {
+    state.activeReservationDateFilter = 'all';
+  }
+  renderReservations();
+}
+
+function openAddReservationModal() {
+  document.getElementById('reservation-modal-title').textContent = 'إضافة حجز جديد';
+  document.getElementById('reservation-form-id').value = '';
+  document.getElementById('reservation-form-name').value = '';
+  document.getElementById('reservation-form-phone').value = '';
+  document.getElementById('reservation-form-notes').value = '';
+  document.getElementById('reservation-form-guests').value = '4';
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  document.getElementById('reservation-form-date').value = todayStr;
+  document.getElementById('reservation-form-time').value = '19:00';
+
+  // Populate tables dropdown
+  populateReservationTablesDropdown();
+
+  openModal('modal-reservation');
+}
+
+function populateReservationTablesDropdown(selectedTableId = '') {
+  const dropdown = document.getElementById('reservation-form-table');
+  if (!dropdown) return;
+
+  dropdown.innerHTML = '<option value="">تحديد لاحقاً / غير محددة</option>';
+  (state.tables || []).forEach(tbl => {
+    const option = document.createElement('option');
+    option.value = tbl.id;
+    option.textContent = `طاولة ${tbl.number} (سعة ${tbl.capacity} أفراد)`;
+    if (tbl.id === selectedTableId) {
+      option.selected = true;
+    }
+    dropdown.appendChild(option);
+  });
+}
+
+async function openEditReservationModal(id) {
+  const res = state.reservations.find(r => r.id === id);
+  if (!res) return;
+
+  document.getElementById('reservation-modal-title').textContent = 'تعديل بيانات الحجز';
+  document.getElementById('reservation-form-id').value = res.id;
+  document.getElementById('reservation-form-name').value = res.customerName;
+  document.getElementById('reservation-form-phone').value = res.phoneNumber;
+  document.getElementById('reservation-form-date').value = res.reservationDate;
+  document.getElementById('reservation-form-time').value = res.reservationTime;
+  document.getElementById('reservation-form-guests').value = res.guestCount;
+  document.getElementById('reservation-form-notes').value = res.notes || '';
+
+  populateReservationTablesDropdown(res.tableId);
+
+  openModal('modal-reservation');
+}
+
+async function submitReservationForm() {
+  const id = document.getElementById('reservation-form-id').value;
+  const name = document.getElementById('reservation-form-name').value.trim();
+  const phone = document.getElementById('reservation-form-phone').value.trim();
+  const date = document.getElementById('reservation-form-date').value;
+  const time = document.getElementById('reservation-form-time').value;
+  const guests = parseInt(document.getElementById('reservation-form-guests').value) || 4;
+  const tableId = document.getElementById('reservation-form-table').value;
+  const notes = document.getElementById('reservation-form-notes').value.trim();
+
+  if (!name || !phone || !date || !time) {
+    alert('يرجى ملء الحقول الإلزامية: اسم الزبون، الهاتف، التاريخ والوقت.');
+    return;
+  }
+
+  const reservationData = {
+    id: id || null,
+    customerName: name,
+    phoneNumber: phone,
+    reservationDate: date,
+    reservationTime: time,
+    guestCount: guests,
+    tableId: tableId || null,
+    notes: notes || '',
+    status: id ? (state.reservations.find(r => r.id === id)?.status || 'pending') : 'pending'
+  };
+
+  try {
+    await state.db.saveReservation(reservationData);
+    closeModal('modal-reservation');
+    await refreshStateData({ reservations: true });
+    renderReservations();
+    alert('تم حفظ الحجز بنجاح.');
+  } catch (err) {
+    console.error('Failed to save reservation:', err);
+    alert('حدث خطأ أثناء حفظ الحجز: ' + err.message);
+  }
+}
+
+async function updateReservationStatus(id, newStatus) {
+  const res = state.reservations.find(r => r.id === id);
+  if (!res) return;
+
+  res.status = newStatus;
+
+  try {
+    await state.db.saveReservation(res);
+    await refreshStateData({ reservations: true });
+    renderReservations();
+  } catch (err) {
+    console.error('Failed to update reservation status:', err);
+    alert('حدث خطأ أثناء تحديث حالة الحجز: ' + err.message);
+  }
+}
+
+async function deleteReservation(id) {
+  if (!confirm('هل أنت متأكد من رغبتك في حذف هذا الحجز نهائياً من النظام؟')) return;
+
+  try {
+    await state.db.deleteReservation(id);
+    await refreshStateData({ reservations: true });
+    renderReservations();
+    alert('تم حذف الحجز بنجاح.');
+  } catch (err) {
+    console.error('Failed to delete reservation:', err);
+    alert('حدث خطأ أثناء حذف الحجز: ' + err.message);
+  }
+}
+
+async function seatReservation(id) {
+  const res = state.reservations.find(r => r.id === id);
+  if (!res) return;
+
+  if (!res.tableId) {
+    alert('هذا الحجز لا يحتوي على طاولة محددة. يرجى تعديل الحجز واختيار طاولة للزبون أولاً قبل تسكينه.');
+    return;
+  }
+
+  const associatedTable = state.tables.find(t => t.id === res.tableId);
+  if (!associatedTable) {
+    alert('الطاولة المرتبطة بهذا الحجز لم تعد متوفرة في النظام.');
+    return;
+  }
+
+  if (associatedTable.status !== 'available') {
+    if (!confirm(`تحذير: الطاولة رقم ${associatedTable.number} مشغولة حالياً في الصالة. هل تريد بالرغم من ذلك تسكين الزبون عليها واستبدال الطلب النشط الحالي؟`)) {
+      return;
+    }
+  }
+
+  try {
+    // 1. Update reservation status to seated
+    res.status = 'seated';
+    await state.db.saveReservation(res);
+
+    // 2. Set Table Status to occupied in Firestore
+    await state.db.updateTableStatus(res.tableId, 'occupied');
+
+    // 3. Create a new active order on the table
+    const orderData = {
+      tableId: res.tableId,
+      customerName: res.customerName,
+      customerCount: res.guestCount,
+      startTime: Date.now(),
+      items: [],
+      lastUpdated: Date.now()
+    };
+    await state.db.saveActiveOrder(res.tableId, orderData);
+
+    // 4. Reload data
+    await refreshStateData({ tables: true, reservations: true });
+
+    // 5. Instantly transition to dashboard tab and open order slideover
+    switchTab('dashboard');
+    setTimeout(() => {
+      openOrderSlideOver(res.tableId);
+    }, 150);
+
+  } catch (err) {
+    console.error('Failed to seat reservation:', err);
+    alert('حدث خطأ أثناء تسكين الحجز: ' + err.message);
+  }
+}
+
+// Expose reservations functions globally
+window.renderReservations = renderReservations;
+window.filterReservationsByStatus = filterReservationsByStatus;
+window.setReservationDateFilter = setReservationDateFilter;
+window.filterReservations = filterReservations;
+window.openAddReservationModal = openAddReservationModal;
+window.openEditReservationModal = openEditReservationModal;
+window.submitReservationForm = submitReservationForm;
+window.updateReservationStatus = updateReservationStatus;
+window.deleteReservation = deleteReservation;
+window.seatReservation = seatReservation;
+

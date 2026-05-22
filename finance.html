@@ -13,41 +13,35 @@
 
   <style>
     /* ==========================================================================
-       Dark Luxury & Forest Green Design System (Finance Dashboard Only)
+       Bistro POS - Elegant Light & Silver Design System for Finance Dashboard
+       Sleek Light Theme, White & Silver base, Forest Green Brand Accent (#193B23).
        ========================================================================== */
     :root {
-      --bg-dark-base: #0f172a;
-      /* Deep slate black background */
-      --bg-dark-card: #1e293b;
-      /* Slate gray cards */
-      --bg-dark-card-hover: #334155;
-      /* Soft hover state */
-
-      --accent-green: #10b981;
-      /* Primary Forest Green Glow */
-      --accent-green-hover: #059669;
-      /* Darker green hover */
-      --accent-green-glow: rgba(16, 185, 129, 0.15);
-
-      --gold-color: #e2b842;
-      /* Accent gold for totals and high-priority metrics */
-      --gold-glow: rgba(226, 184, 66, 0.15);
-
-      --text-light: #f8fafc;
-      /* Pure white-slate text for high contrast */
-      --text-muted: #94a3b8;
-      /* Muted gray for labels and subtitles */
-
-      --border-color: rgba(255, 255, 255, 0.08);
-      --border-focus: rgba(16, 185, 129, 0.4);
-
+      --bg-primary: #f0f2f5;       /* Base silver-gray background */
+      --bg-secondary: #ffffff;     /* Pure White for sidebars and panels */
+      --bg-card: #ffffff;          /* Pure White for cards */
+      --bg-card-hover: #f8fafc;    /* Soft silver/blue hover states */
+      
+      --accent-green: #193B23;     /* Forest Green primary brand accent */
+      --accent-green-hover: #112818; /* Darker green for hover */
+      --accent-green-glow: rgba(25, 59, 35, 0.08);
+      
+      --gold-color: #d4af37;       /* Gold color for totals and high-priority metrics */
+      --gold-glow: rgba(212, 175, 55, 0.1);
+      
+      --text-light: #1e293b;       /* Deep Charcoal for sharp readability */
+      --text-muted: #64748b;       /* Muted Slate Gray for sub-labels */
+      
+      --border-color: #e2e8f0;     /* Light silver borders */
+      --border-focus: rgba(25, 59, 35, 0.25);
+      
       --radius-sm: 8px;
       --radius-md: 12px;
-      --radius-lg: 16px;
-      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      --shadow-glow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 25px rgba(16, 185, 129, 0.05);
-
-      --font-family: 'Cairo', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      --radius-lg: 18px;
+      --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      --shadow-glow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02);
+      
+      --font-family: 'Cairo', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     * {
@@ -58,7 +52,7 @@
 
     body {
       font-family: var(--font-family);
-      background-color: var(--bg-dark-base);
+      background-color: var(--bg-primary);
       color: var(--text-light);
       min-height: 100vh;
       direction: rtl;
@@ -73,16 +67,16 @@
     }
 
     ::-webkit-scrollbar-track {
-      background: var(--bg-dark-base);
+      background: var(--bg-primary);
     }
 
     ::-webkit-scrollbar-thumb {
-      background: var(--bg-dark-card);
+      background: rgba(0, 0, 0, 0.1);
       border-radius: 4px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: var(--text-muted);
+      background: var(--accent-green);
     }
 
     /* ==========================================================================
@@ -95,20 +89,18 @@
       min-height: 100vh;
       padding: 20px;
       position: relative;
-      background: radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 90% 80%, rgba(226, 184, 66, 0.05) 0%, transparent 40%);
+      background: radial-gradient(circle at 10% 20%, rgba(25, 59, 35, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(212, 175, 55, 0.04) 0%, transparent 40%);
     }
 
     .login-card {
-      background: rgba(30, 41, 59, 0.7);
-      backdrop-filter: blur(16px) saturate(180%);
-      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-lg);
       padding: 40px;
       width: 100%;
       max-width: 440px;
-      box-shadow: var(--shadow-glow);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
       text-align: center;
       transition: var(--transition);
       animation: fadeIn 0.8s ease;
@@ -119,8 +111,8 @@
       height: 80px;
       margin: 0 auto 20px auto;
       border-radius: var(--radius-md);
-      box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
-      background: #1e293b;
+      box-shadow: 0 4px 12px rgba(25, 59, 35, 0.1);
+      background: var(--bg-primary);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -137,7 +129,7 @@
     .login-header h1 {
       font-size: 24px;
       font-weight: 800;
-      color: var(--text-light);
+      color: var(--accent-green);
       margin-bottom: 8px;
     }
 
@@ -166,7 +158,7 @@
 
     .form-control {
       width: 100%;
-      background: rgba(15, 23, 42, 0.6);
+      background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
       padding: 14px 16px;
@@ -178,14 +170,13 @@
 
     .form-control:focus {
       border-color: var(--accent-green);
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
-      background: rgba(15, 23, 42, 0.8);
+      box-shadow: 0 0 0 3px rgba(25, 59, 35, 0.08);
     }
 
     .btn-login {
       width: 100%;
       background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-green-hover) 100%);
-      color: #0f172a;
+      color: #ffffff;
       border: none;
       border-radius: var(--radius-md);
       padding: 15px;
@@ -194,12 +185,12 @@
       cursor: pointer;
       transition: var(--transition);
       margin-top: 10px;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+      box-shadow: 0 4px 12px rgba(25, 59, 35, 0.15);
     }
 
     .btn-login:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+      box-shadow: 0 6px 20px rgba(25, 59, 35, 0.25);
       filter: brightness(1.1);
     }
 
@@ -209,8 +200,8 @@
 
     /* Error Alert */
     .login-error {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.25);
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.2);
       color: #ef4444;
       border-radius: var(--radius-sm);
       padding: 12px;
@@ -225,38 +216,14 @@
 
     /* Shake Animation */
     @keyframes shake {
-
-      0%,
-      100% {
-        transform: translateX(0);
-      }
-
-      10%,
-      30%,
-      50%,
-      70%,
-      90% {
-        transform: translateX(-6px);
-      }
-
-      20%,
-      40%,
-      60%,
-      80% {
-        transform: translateX(6px);
-      }
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
+      20%, 40%, 60%, 80% { transform: translateX(6px); }
     }
 
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(15px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(15px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     /* ==========================================================================
@@ -270,7 +237,7 @@
     }
 
     .dashboard-header {
-      background-color: rgba(30, 41, 59, 0.9);
+      background-color: var(--bg-secondary);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border-color);
       padding: 15px 40px;
@@ -308,7 +275,7 @@
       font-size: 18px;
       font-weight: 800;
       letter-spacing: 0.5px;
-      color: var(--text-light);
+      color: var(--accent-green);
     }
 
     .header-brand-info p {
@@ -323,7 +290,7 @@
     .pulse-dot {
       width: 8px;
       height: 8px;
-      background-color: var(--accent-green);
+      background-color: #10b981;
       border-radius: 50%;
       display: inline-block;
       box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
@@ -331,20 +298,9 @@
     }
 
     @keyframes pulse {
-      0% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-      }
-
-      70% {
-        transform: scale(1);
-        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
-      }
-
-      100% {
-        transform: scale(0.95);
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-      }
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
 
     .header-actions {
@@ -369,36 +325,36 @@
     }
 
     .btn-secondary {
-      background: var(--bg-dark-card);
+      background: var(--bg-secondary);
       color: var(--text-light);
       border: 1px solid var(--border-color);
     }
 
     .btn-secondary:hover {
-      background: var(--bg-dark-card-hover);
+      background: var(--bg-primary);
       border-color: var(--text-muted);
     }
 
     .btn-primary {
       background: var(--accent-green);
-      color: #0f172a;
+      color: #ffffff;
     }
 
     .btn-primary:hover {
       background: var(--accent-green-hover);
-      box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+      box-shadow: 0 4px 12px rgba(25, 59, 35, 0.15);
     }
 
     .btn-logout {
-      background: rgba(239, 68, 68, 0.1);
+      background: rgba(239, 68, 68, 0.08);
       color: #ef4444;
-      border: 1px solid rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.15);
     }
 
     .btn-logout:hover {
       background: #ef4444;
       color: #fff;
-      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
     }
 
     /* ==========================================================================
@@ -414,7 +370,7 @@
 
     /* Filters Bar */
     .filter-panel {
-      background: var(--bg-dark-card);
+      background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
       padding: 18px 24px;
@@ -423,6 +379,7 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 20px;
+      box-shadow: var(--shadow-glow);
     }
 
     .filter-left {
@@ -433,7 +390,7 @@
     }
 
     .filter-btn {
-      background: rgba(15, 23, 42, 0.5);
+      background: var(--bg-primary);
       border: 1px solid var(--border-color);
       color: var(--text-muted);
       padding: 8px 16px;
@@ -446,7 +403,7 @@
 
     .filter-btn:hover {
       color: var(--text-light);
-      background: rgba(15, 23, 42, 0.8);
+      background: var(--bg-secondary);
     }
 
     .filter-btn.active {
@@ -459,7 +416,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      background: rgba(15, 23, 42, 0.3);
+      background: var(--bg-primary);
       padding: 4px 10px;
       border-radius: var(--radius-sm);
       border: 1px solid var(--border-color);
@@ -483,12 +440,11 @@
     }
 
     .date-input::-webkit-calendar-picker-indicator {
-      filter: invert(1);
       cursor: pointer;
     }
 
     .select-dropdown {
-      background: rgba(15, 23, 42, 0.5);
+      background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       color: var(--text-light);
       padding: 8px 14px;
@@ -512,7 +468,7 @@
     }
 
     .kpi-card {
-      background: var(--bg-dark-card);
+      background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
       padding: 24px;
@@ -521,12 +477,13 @@
       gap: 18px;
       transition: var(--transition);
       cursor: default;
+      box-shadow: var(--shadow-glow);
     }
 
     .kpi-card:hover {
       transform: translateY(-3px);
-      border-color: rgba(255, 255, 255, 0.15);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+      border-color: rgba(0, 0, 0, 0.08);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
     }
 
     .kpi-icon {
@@ -541,12 +498,12 @@
 
     /* Individual KPI Card Styles */
     .kpi-revenue .kpi-icon {
-      background: var(--gold-glow);
-      color: var(--gold-color);
+      background: var(--accent-green-glow);
+      color: var(--accent-green);
     }
 
     .kpi-revenue {
-      border-right: 4px solid var(--gold-color);
+      border-right: 4px solid var(--accent-green);
     }
 
     .kpi-orders .kpi-icon {
@@ -559,12 +516,12 @@
     }
 
     .kpi-average .kpi-icon {
-      background: var(--accent-green-glow);
-      color: var(--accent-green);
+      background: rgba(16, 185, 129, 0.08);
+      color: #10b981;
     }
 
     .kpi-average {
-      border-right: 4px solid var(--accent-green);
+      border-right: 4px solid #10b981;
     }
 
     .kpi-discounts .kpi-icon {
@@ -605,7 +562,7 @@
     }
 
     .kpi-value.gold-text {
-      color: var(--gold-color);
+      color: var(--accent-green);
     }
 
     /* ==========================================================================
@@ -624,7 +581,7 @@
     }
 
     .chart-card {
-      background: var(--bg-dark-card);
+      background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
       padding: 24px;
@@ -632,6 +589,7 @@
       flex-direction: column;
       gap: 15px;
       position: relative;
+      box-shadow: var(--shadow-glow);
     }
 
     .chart-card h3 {
@@ -665,13 +623,14 @@
     }
 
     .table-card {
-      background: var(--bg-dark-card);
+      background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
       padding: 24px;
       display: flex;
       flex-direction: column;
       gap: 15px;
+      box-shadow: var(--shadow-glow);
     }
 
     .table-card-header {
@@ -698,7 +657,7 @@
 
     .search-box input {
       width: 100%;
-      background: rgba(15, 23, 42, 0.4);
+      background: var(--bg-primary);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm);
       padding: 8px 12px 8px 30px;
@@ -737,7 +696,7 @@
     }
 
     .data-table th {
-      background: rgba(15, 23, 42, 0.5);
+      background: var(--bg-primary);
       padding: 12px 14px;
       font-weight: 700;
       color: var(--text-light);
@@ -759,7 +718,7 @@
     }
 
     .data-table tr:hover td {
-      background: rgba(255, 255, 255, 0.02);
+      background: var(--bg-card-hover);
       color: var(--text-light);
     }
 
@@ -772,15 +731,15 @@
     }
 
     .badge-payment.cash {
-      background: rgba(16, 185, 129, 0.15);
-      color: var(--accent-green);
-      border: 1px solid rgba(16, 185, 129, 0.2);
+      background: rgba(16, 185, 129, 0.08);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.15);
     }
 
     .badge-payment.card {
-      background: rgba(56, 189, 248, 0.15);
+      background: rgba(56, 189, 248, 0.08);
       color: #38bdf8;
-      border: 1px solid rgba(56, 189, 248, 0.2);
+      border: 1px solid rgba(56, 189, 248, 0.15);
     }
 
     .item-rank-badge {
@@ -803,8 +762,8 @@
 
     tr:nth-child(2) .item-rank-badge {
       background: rgba(200, 200, 200, 0.1);
-      color: #c8c8c8;
-      border: 1px solid #c8c8c8;
+      color: #7f8c8d;
+      border: 1px solid #7f8c8d;
     }
 
     tr:nth-child(3) .item-rank-badge {
@@ -814,7 +773,7 @@
     }
 
     .badge-category {
-      background: rgba(255, 255, 255, 0.05);
+      background: var(--bg-primary);
       color: var(--text-light);
       padding: 2px 6px;
       border-radius: 4px;
@@ -822,9 +781,9 @@
     }
 
     .btn-view-receipt {
-      background: rgba(16, 185, 129, 0.1);
+      background: var(--accent-green-glow);
       color: var(--accent-green);
-      border: 1px solid rgba(16, 185, 129, 0.2);
+      border: 1px solid var(--accent-green-glow);
       padding: 4px 8px;
       border-radius: 4px;
       cursor: pointer;
@@ -835,7 +794,7 @@
 
     .btn-view-receipt:hover {
       background: var(--accent-green);
-      color: #0f172a;
+      color: #ffffff;
     }
 
     /* ==========================================================================
@@ -848,7 +807,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(15, 23, 42, 0.85);
+      background: rgba(15, 23, 42, 0.4);
       backdrop-filter: blur(8px);
       z-index: 1000;
       justify-content: center;
@@ -861,7 +820,7 @@
       background: #ffffff;
       color: #000000;
       border-radius: var(--radius-md);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
       width: 100%;
       max-width: 380px;
       max-height: 90vh;
@@ -871,15 +830,8 @@
     }
 
     @keyframes slideUp {
-      from {
-        transform: translateY(30px);
-        opacity: 0;
-      }
-
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
+      from { transform: translateY(30px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
     }
 
     .modal-close-btn {
@@ -1063,6 +1015,145 @@
 
       .btn-view-receipt {
         display: none !important;
+      }
+    }
+
+    /* ==========================================================================
+       Responsive Mobile Support
+       ========================================================================== */
+    @media (max-width: 768px) {
+      .dashboard-header {
+        padding: 10px 15px;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 10px;
+      }
+      
+      .header-brand {
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .header-brand-info h2 {
+        font-size: 16px;
+      }
+      
+      .header-actions {
+        width: 100%;
+        justify-content: center;
+        gap: 8px;
+      }
+      
+      .header-actions .btn {
+        flex: 1;
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+      
+      .dashboard-content {
+        padding: 15px 15px;
+        gap: 15px;
+      }
+      
+      .filter-panel {
+        padding: 15px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+      }
+      
+      .filter-left {
+        justify-content: center;
+        gap: 8px;
+      }
+      
+      .filter-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+        flex-grow: 1;
+        text-align: center;
+      }
+      
+      .custom-range-wrapper {
+        width: 100%;
+        justify-content: space-between;
+      }
+      
+      .filter-right {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .select-dropdown {
+        width: 100%;
+      }
+      
+      .kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+      
+      .kpi-card {
+        padding: 16px;
+      }
+      
+      .kpi-value {
+        font-size: 18px;
+      }
+      
+      .chart-card, .table-card {
+        padding: 15px;
+      }
+      
+      .chart-container {
+        height: 220px;
+      }
+      
+      .table-card-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      
+      .search-box {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 24px 16px !important;
+      }
+      .login-header h1 {
+        font-size: 20px !important;
+      }
+      .login-header p {
+        font-size: 13px !important;
+        margin-bottom: 20px !important;
+      }
+      .form-control {
+        padding: 12px 14px !important;
+        font-size: 13px !important;
+      }
+      .btn-login {
+        padding: 12px !important;
+        font-size: 14px !important;
+      }
+      .custom-range-wrapper {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+        padding: 8px 10px !important;
+        width: 100% !important;
+      }
+      .custom-range-wrapper label {
+        text-align: right !important;
+      }
+      .date-input {
+        width: 100% !important;
+        border-bottom: 1px solid var(--border-color) !important;
+        padding-bottom: 4px !important;
       }
     }
   </style>
@@ -1745,8 +1836,8 @@
 
       // Forest green gradient for lines
       const gradient = ctx.createLinearGradient(0, 0, 0, 240);
-      gradient.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
-      gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+      gradient.addColorStop(0, 'rgba(25, 59, 35, 0.2)');
+      gradient.addColorStop(1, 'rgba(25, 59, 35, 0.0)');
 
       chartSalesTrend = new Chart(ctx, {
         type: 'line',
@@ -1755,12 +1846,12 @@
           datasets: [{
             label: 'المبيعات',
             data: values,
-            borderColor: '#10b981',
+            borderColor: '#193B23',
             borderWidth: 3,
             backgroundColor: gradient,
             fill: true,
             tension: 0.4,
-            pointBackgroundColor: '#10b981',
+            pointBackgroundColor: '#193B23',
             pointHoverRadius: 7
           }]
         },
@@ -1779,16 +1870,16 @@
           },
           scales: {
             y: {
-              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              grid: { color: '#e2e8f0' },
               ticks: {
-                color: '#94a3b8',
+                color: '#64748b',
                 font: { family: 'Cairo', size: 10 },
                 callback: (val) => val.toLocaleString('ar-SA')
               }
             },
             x: {
               grid: { display: false },
-              ticks: { color: '#94a3b8', font: { family: 'Cairo', size: 10 } }
+              ticks: { color: '#64748b', font: { family: 'Cairo', size: 10 } }
             }
           }
         }
@@ -1820,7 +1911,7 @@
           labels: ['نقدي (Cash)', 'شبكة / مدى (Card)'],
           datasets: [{
             data: [cashTotal, cardTotal],
-            backgroundColor: ['#10b981', '#38bdf8'],
+            backgroundColor: ['#193B23', '#d4af37'],
             borderWidth: 0,
             hoverOffset: 4
           }]
@@ -1831,7 +1922,7 @@
           plugins: {
             legend: {
               position: 'bottom',
-              labels: { color: '#94a3b8', font: { family: 'Cairo', size: 11 } }
+              labels: { color: '#64748b', font: { family: 'Cairo', size: 11 } }
             },
             tooltip: {
               titleFont: { family: 'Cairo' },
@@ -1871,8 +1962,8 @@
           labels: labels,
           datasets: [{
             data: data,
-            backgroundColor: 'rgba(16, 185, 129, 0.65)',
-            hoverBackgroundColor: '#10b981',
+            backgroundColor: 'rgba(25, 59, 35, 0.65)',
+            hoverBackgroundColor: '#193B23',
             borderRadius: 4
           }]
         },
@@ -1891,16 +1982,16 @@
           },
           scales: {
             y: {
-              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              grid: { color: '#e2e8f0' },
               ticks: {
-                color: '#94a3b8',
+                color: '#64748b',
                 font: { family: 'Cairo', size: 9 },
                 callback: (val) => val.toLocaleString('ar-SA')
               }
             },
             x: {
               grid: { display: false },
-              ticks: { color: '#94a3b8', font: { family: 'Cairo', size: 9 } }
+              ticks: { color: '#64748b', font: { family: 'Cairo', size: 9 } }
             }
           }
         }
@@ -1949,7 +2040,7 @@
       });
 
       // Harmonic palette
-      const colors = ['#e2b842', '#10b981', '#a855f7', '#f43f5e', '#38bdf8', '#fb923c', '#f472b6', '#34d399'];
+      const colors = ['#193B23', '#d4af37', '#10b981', '#38bdf8', '#fb923c', '#f472b6', '#a855f7', '#f43f5e'];
 
       chartCategoryBreakdown = new Chart(ctx, {
         type: 'doughnut',
@@ -1967,7 +2058,7 @@
           plugins: {
             legend: {
               position: 'bottom',
-              labels: { color: '#94a3b8', font: { family: 'Cairo', size: 10 } }
+              labels: { color: '#64748b', font: { family: 'Cairo', size: 10 } }
             },
             tooltip: {
               titleFont: { family: 'Cairo' },
