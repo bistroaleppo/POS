@@ -124,82 +124,79 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function refreshStateData(options = {}) {
   if (!state.db) return;
 
-  // By default, if no options are specified, we only load tables, and load others ONLY if they are not loaded yet.
   const loadAll = Object.keys(options).length === 0;
+  const promises = [];
 
-  // 1. Tables: load if loadAll, or if tables is explicitly requested, or if state.tables is empty
   if (loadAll || options.tables || !state.tables || state.tables.length === 0) {
-    state.tables = await state.db.getTables();
+    promises.push(state.db.getTables().then(res => state.tables = res));
   }
 
-  // Active Orders: pre-load at startup so the dashboard renders instantly from state with zero DB calls.
-  // After startup, state.activeOrders is managed purely via in-memory optimistic updates.
   if (loadAll) {
-    try {
-      const activeOrdersList = await state.db.getAll('active_orders');
-      state.activeOrders = {};
-      activeOrdersList.forEach(ord => { if (ord && ord.tableId) state.activeOrders[ord.tableId] = ord; });
-    } catch (err) {
-      state.activeOrders = state.activeOrders || {};
-    }
+    promises.push(
+      state.db.getAll('active_orders').then(activeOrdersList => {
+        state.activeOrders = {};
+        activeOrdersList.forEach(ord => { if (ord && ord.tableId) state.activeOrders[ord.tableId] = ord; });
+      }).catch(err => {
+        state.activeOrders = state.activeOrders || {};
+      })
+    );
   }
 
-  // 2. Categories & Products: load if explicitly requested, or if not loaded yet
   if (options.menu || !state.categories || state.categories.length === 0) {
-    state.categories = await state.db.getCategories();
-    state.categories.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    promises.push(state.db.getCategories().then(res => {
+      state.categories = res;
+      state.categories.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    }));
   }
+
   if (options.menu || !state.products || state.products.length === 0) {
-    state.products = await state.db.getProducts();
+    promises.push(state.db.getProducts().then(res => state.products = res));
   }
 
-  // 3. Sales History: load ONLY if explicitly requested (e.g. when on reports tab), or if not loaded yet
   if (options.sales || !state.salesHistory || state.salesHistory.length === 0) {
-    state.salesHistory = await state.db.getSalesHistory();
+    promises.push(state.db.getSalesHistory().then(res => state.salesHistory = res));
   }
 
-  // 4. Reservations: load ONLY if explicitly requested (e.g. when on reservations tab), or if not loaded yet
   if (options.reservations || !state.reservations || state.reservations.length === 0) {
-    state.reservations = await state.db.getReservations();
-    state.reservations.sort((a, b) => {
-      const dateTimeA = new Date((a.reservationDate || '') + 'T' + (a.reservationTime || '00:00'));
-      const dateTimeB = new Date((b.reservationDate || '') + 'T' + (b.reservationTime || '00:00'));
-      return dateTimeA - dateTimeB;
-    });
+    promises.push(state.db.getReservations().then(res => {
+      state.reservations = res;
+      state.reservations.sort((a, b) => {
+        const dateTimeA = new Date((a.reservationDate || '') + 'T' + (a.reservationTime || '00:00'));
+        const dateTimeB = new Date((b.reservationDate || '') + 'T' + (b.reservationTime || '00:00'));
+        return dateTimeA - dateTimeB;
+      });
+    }));
   }
 
-  // 5. Settings: load if explicitly requested, or if not loaded yet.
-  // When explicitly requested (i.e. after a save), force-read from the server to bypass
-  // stale cache and ensure the newly saved values are immediately reflected in the UI.
   if (options.settings || state.taxRate === undefined) {
-    try {
-      const settings = await state.db.getAll('settings', !!options.settings);
+    promises.push(
+      state.db.getAll('settings', !!options.settings).then(settings => {
+        const taxRateSetting = settings.find(s => s.id === 'tax_rate');
+        state.taxRate = taxRateSetting ? parseFloat(taxRateSetting.value) : 15;
 
-      // Tax Rate
-      const taxRateSetting = settings.find(s => s.id === 'tax_rate');
-      state.taxRate = taxRateSetting ? parseFloat(taxRateSetting.value) : 15;
+        const brandNameSetting = settings.find(s => s.id === 'restaurant_name');
+        state.restaurantName = brandNameSetting ? brandNameSetting.value : 'Restaurant';
 
-      // Dynamic Brand customization parameters
-      const brandNameSetting = settings.find(s => s.id === 'restaurant_name');
-      state.restaurantName = brandNameSetting ? brandNameSetting.value : 'Restaurant';
+        const brandSloganSetting = settings.find(s => s.id === 'restaurant_slogan');
+        state.restaurantSlogan = brandSloganSetting ? brandSloganSetting.value : 'Welcome';
 
-      const brandSloganSetting = settings.find(s => s.id === 'restaurant_slogan');
-      state.restaurantSlogan = brandSloganSetting ? brandSloganSetting.value : 'Welcome';
+        const brandLogoSetting = settings.find(s => s.id === 'restaurant_logo');
+        state.restaurantLogo = brandLogoSetting ? brandLogoSetting.value : './assets/logo.png';
 
-      const brandLogoSetting = settings.find(s => s.id === 'restaurant_logo');
-      state.restaurantLogo = brandLogoSetting ? brandLogoSetting.value : './assets/logo.png';
-
-      const brandFooterSetting = settings.find(s => s.id === 'restaurant_footer');
-      state.restaurantFooter = brandFooterSetting ? brandFooterSetting.value : 'Have a nice day!';
-    } catch (err) {
-      console.error('Failed to load settings from DB. Applying defaults:', err);
-      state.taxRate = 15;
-      state.restaurantName = 'Restaurant';
-      state.restaurantSlogan = 'Welcome';
-      state.restaurantLogo = './assets/logo.png';
-      state.restaurantFooter = 'Have a nice day!';
-    }
+        const brandFooterSetting = settings.find(s => s.id === 'restaurant_footer');
+        state.restaurantFooter = brandFooterSetting ? brandFooterSetting.value : 'Have a nice day!';
+      }).catch(err => {
+        console.error('Failed to load settings from DB. Applying defaults:', err);
+        state.taxRate = 15;
+        state.restaurantName = 'Restaurant';
+        state.restaurantSlogan = 'Welcome';
+        state.restaurantLogo = './assets/logo.png';
+        state.restaurantFooter = 'Have a nice day!';
+      })
+    );
   }
+
+  await Promise.all(promises);
 
   // Populate UI inputs with settings values
   const taxRateInput = document.getElementById('settings-tax-rate');
@@ -1685,12 +1682,17 @@ function renderReports() {
 
   // Compute popular category
   const categoryTally = {};
+  const productMap = new Map();
+  state.products.forEach(p => productMap.set(p.id, p));
+  const categoryMap = new Map();
+  state.categories.forEach(c => categoryMap.set(c.id, c));
+
   filteredSales.forEach(sale => {
     sale.items.forEach(item => {
       // Find category of item
-      const prod = state.products.find(p => p.id === item.productId);
+      const prod = productMap.get(item.productId);
       if (prod) {
-        const cat = state.categories.find(c => c.id === prod.categoryId);
+        const cat = categoryMap.get(prod.categoryId);
         if (cat) {
           categoryTally[cat.name] = (categoryTally[cat.name] || 0) + item.quantity;
         }
@@ -2245,13 +2247,15 @@ async function exportFullBackupJSON() {
       return;
     }
 
-    const tables = await state.db.getAll('tables');
-    const categories = await state.db.getAll('categories');
-    const products = await state.db.getAll('products');
-    const activeOrders = await state.db.getAll('active_orders');
-    const salesHistory = await state.db.getAll('sales_history');
-    const settings = await state.db.getAll('settings');
-    const reservations = await state.db.getAll('reservations');
+    const [tables, categories, products, activeOrders, salesHistory, settings, reservations] = await Promise.all([
+      state.db.getAll('tables'),
+      state.db.getAll('categories'),
+      state.db.getAll('products'),
+      state.db.getAll('active_orders'),
+      state.db.getAll('sales_history'),
+      state.db.getAll('settings'),
+      state.db.getAll('reservations')
+    ]);
 
     const backupData = {
       version: 1.0,
@@ -2328,56 +2332,61 @@ async function handleFullBackupImport(event) {
       }
 
       // 1. Clear existing database stores completely
-      await state.db.clearStore('tables');
-      await state.db.clearStore('categories');
-      await state.db.clearStore('products');
-      await state.db.clearStore('active_orders');
-      await state.db.clearStore('sales_history');
-      await state.db.clearStore('settings');
-      await state.db.clearStore('reservations');
+      await Promise.all([
+        state.db.clearStore('tables'),
+        state.db.clearStore('categories'),
+        state.db.clearStore('products'),
+        state.db.clearStore('active_orders'),
+        state.db.clearStore('sales_history'),
+        state.db.clearStore('settings'),
+        state.db.clearStore('reservations')
+      ]);
 
+      const putPromises = [];
       // 2. Insert tables
       for (const tbl of backupData.tables) {
-        await state.db.put('tables', tbl);
+        putPromises.push(state.db.put('tables', tbl));
       }
 
       // 3. Insert categories
       for (const cat of backupData.categories) {
-        await state.db.put('categories', cat);
+        putPromises.push(state.db.put('categories', cat));
       }
 
       // 4. Insert products
       for (const prod of backupData.products) {
-        await state.db.put('products', prod);
+        putPromises.push(state.db.put('products', prod));
       }
 
       // 5. Insert active orders (if any exist in backup)
       if (Array.isArray(backupData.active_orders)) {
         for (const ord of backupData.active_orders) {
-          await state.db.put('active_orders', ord);
+          putPromises.push(state.db.put('active_orders', ord));
         }
       }
 
       // 6. Insert sales history (if any exist in backup)
       if (Array.isArray(backupData.sales_history)) {
         for (const sale of backupData.sales_history) {
-          await state.db.put('sales_history', sale);
+          putPromises.push(state.db.put('sales_history', sale));
         }
       }
 
       // 7. Insert settings (if any exist in backup)
       if (Array.isArray(backupData.settings)) {
         for (const set of backupData.settings) {
-          await state.db.put('settings', set);
+          putPromises.push(state.db.put('settings', set));
         }
       }
 
       // 8. Insert reservations (if any exist in backup)
       if (Array.isArray(backupData.reservations)) {
         for (const res of backupData.reservations) {
-          await state.db.put('reservations', res);
+          putPromises.push(state.db.put('reservations', res));
         }
       }
+
+      await Promise.all(putPromises);
 
       alert('تم استيراد واستعادة النسخة الاحتياطية بنجاح! سيتم الآن إعادة تحميل النظام لتطبيق التغييرات.');
       window.location.reload();
@@ -2794,4 +2803,3 @@ window.submitReservationForm = submitReservationForm;
 window.updateReservationStatus = updateReservationStatus;
 window.deleteReservation = deleteReservation;
 window.seatReservation = seatReservation;
-

@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Restaurant POS</title>
   <link rel="icon" type="image/png" href="./assets/logo.png">
+  <link rel="manifest" href="./manifest.json">
   <!-- Google Fonts: Cairo (Arabic text) & Inter (Numbers and charts) -->
   <link
     href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap"
@@ -2396,6 +2397,15 @@
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    }
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(registration => console.log('Service Worker registered with scope:', registration.scope))
+          .catch(error => console.error('Service Worker registration failed:', error));
+      });
     }
   </script>
 </body>

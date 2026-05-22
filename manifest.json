@@ -1,0 +1,19 @@
+{
+  "name": "Restaurant POS",
+  "short_name": "Restaurant",
+  "description": "نظام إدارة المطاعم الذكي",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#193B23",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "./assets/logo.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -7,6 +7,7 @@
   <title>Bistro POS | نظام إدارة المطاعم الذكي</title>
   <link rel="icon" type="image/png" href="./assets/logo.png">
   <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="./manifest.json">
 </head>
 
 <body>
@@ -967,10 +968,19 @@
 
   <!-- Scripts -->
   <!-- Firebase Compat SDKs (Required for seamless Pure Frontend operation) -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="./assets/js/firebase-app-compat.js"></script>
+  <script src="./assets/js/firebase-firestore-compat.js"></script>
   <script src="database.js"></script>
   <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(registration => console.log('Service Worker registered with scope:', registration.scope))
+          .catch(error => console.error('Service Worker registration failed:', error));
+      });
+    }
+  </script>
 </body>
 
 </html>
