@@ -1,0 +1,2312 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Restaurant POS</title>
+  <link rel="icon" type="image/png" href="./assets/logo.png">
+  <!-- Google Fonts: Cairo (Arabic text) & Inter (Numbers and charts) -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       Dark Luxury & Forest Green Design System (Finance Dashboard Only)
+       ========================================================================== */
+    :root {
+      --bg-dark-base: #0f172a;
+      /* Deep slate black background */
+      --bg-dark-card: #1e293b;
+      /* Slate gray cards */
+      --bg-dark-card-hover: #334155;
+      /* Soft hover state */
+
+      --accent-green: #10b981;
+      /* Primary Forest Green Glow */
+      --accent-green-hover: #059669;
+      /* Darker green hover */
+      --accent-green-glow: rgba(16, 185, 129, 0.15);
+
+      --gold-color: #e2b842;
+      /* Accent gold for totals and high-priority metrics */
+      --gold-glow: rgba(226, 184, 66, 0.15);
+
+      --text-light: #f8fafc;
+      /* Pure white-slate text for high contrast */
+      --text-muted: #94a3b8;
+      /* Muted gray for labels and subtitles */
+
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(16, 185, 129, 0.4);
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      --shadow-glow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 25px rgba(16, 185, 129, 0.05);
+
+      --font-family: 'Cairo', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-dark-base);
+      color: var(--text-light);
+      min-height: 100vh;
+      direction: rtl;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-dark-base);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--bg-dark-card);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    /* ==========================================================================
+       Glassmorphic Secure Login Interface
+       ========================================================================== */
+    .login-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      position: relative;
+      background: radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(226, 184, 66, 0.05) 0%, transparent 40%);
+    }
+
+    .login-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: var(--shadow-glow);
+      text-align: center;
+      transition: var(--transition);
+      animation: fadeIn 0.8s ease;
+    }
+
+    .login-logo {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px auto;
+      border-radius: var(--radius-md);
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+      background: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 2px solid var(--accent-green);
+    }
+
+    .login-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .login-header h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text-light);
+      margin-bottom: 8px;
+    }
+
+    .login-header p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+      text-align: right;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .form-control {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      color: var(--text-light);
+      font-size: 14px;
+      transition: var(--transition);
+      outline: none;
+    }
+
+    .form-control:focus {
+      border-color: var(--accent-green);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+      background: rgba(15, 23, 42, 0.8);
+    }
+
+    .btn-login {
+      width: 100%;
+      background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-green-hover) 100%);
+      color: #0f172a;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 15px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+      margin-top: 10px;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    }
+
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+      filter: brightness(1.1);
+    }
+
+    .btn-login:active {
+      transform: translateY(0);
+    }
+
+    /* Error Alert */
+    .login-error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #ef4444;
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      animation: shake 0.5s ease;
+    }
+
+    /* Shake Animation */
+    @keyframes shake {
+
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      10%,
+      30%,
+      50%,
+      70%,
+      90% {
+        transform: translateX(-6px);
+      }
+
+      20%,
+      40%,
+      60%,
+      80% {
+        transform: translateX(6px);
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(15px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ==========================================================================
+       Dashboard Main Shell
+       ========================================================================== */
+    .dashboard-wrapper {
+      display: none;
+      flex-direction: column;
+      min-height: 100vh;
+      animation: fadeIn 0.6s ease;
+    }
+
+    .dashboard-header {
+      background-color: rgba(30, 41, 59, 0.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 15px 40px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .header-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+
+    .header-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .header-brand-info h2 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: var(--text-light);
+    }
+
+    .header-brand-info p {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Green Pulse Dot */
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--accent-green);
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      animation: pulse 1.6s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      }
+
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+      }
+
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+      border: none;
+      outline: none;
+    }
+
+    .btn-secondary {
+      background: var(--bg-dark-card);
+      color: var(--text-light);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-dark-card-hover);
+      border-color: var(--text-muted);
+    }
+
+    .btn-primary {
+      background: var(--accent-green);
+      color: #0f172a;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-green-hover);
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+    }
+
+    .btn-logout {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-logout:hover {
+      background: #ef4444;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+    }
+
+    /* ==========================================================================
+       Dashboard Main Content Area
+       ========================================================================== */
+    .dashboard-content {
+      padding: 30px 40px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+
+    /* Filters Bar */
+    .filter-panel {
+      background: var(--bg-dark-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .filter-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .filter-btn:hover {
+      color: var(--text-light);
+      background: rgba(15, 23, 42, 0.8);
+    }
+
+    .filter-btn.active {
+      background: var(--accent-green-glow);
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+
+    .custom-range-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(15, 23, 42, 0.3);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      flex-wrap: wrap;
+    }
+
+    .custom-range-wrapper label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .date-input {
+      background: transparent;
+      border: none;
+      color: var(--text-light);
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .date-input::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+      cursor: pointer;
+    }
+
+    .select-dropdown {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--border-color);
+      color: var(--text-light);
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .select-dropdown:focus {
+      border-color: var(--accent-green);
+    }
+
+    /* KPI Summary Cards Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 20px;
+    }
+
+    .kpi-card {
+      background: var(--bg-dark-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      transition: var(--transition);
+      cursor: default;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .kpi-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* Individual KPI Card Styles */
+    .kpi-revenue .kpi-icon {
+      background: var(--gold-glow);
+      color: var(--gold-color);
+    }
+
+    .kpi-revenue {
+      border-right: 4px solid var(--gold-color);
+    }
+
+    .kpi-orders .kpi-icon {
+      background: rgba(56, 189, 248, 0.1);
+      color: #38bdf8;
+    }
+
+    .kpi-orders {
+      border-right: 4px solid #38bdf8;
+    }
+
+    .kpi-average .kpi-icon {
+      background: var(--accent-green-glow);
+      color: var(--accent-green);
+    }
+
+    .kpi-average {
+      border-right: 4px solid var(--accent-green);
+    }
+
+    .kpi-discounts .kpi-icon {
+      background: rgba(244, 63, 94, 0.1);
+      color: #f43f5e;
+    }
+
+    .kpi-discounts {
+      border-right: 4px solid #f43f5e;
+    }
+
+    .kpi-taxes .kpi-icon {
+      background: rgba(168, 85, 247, 0.1);
+      color: #a855f7;
+    }
+
+    .kpi-taxes {
+      border-right: 4px solid #a855f7;
+    }
+
+    .kpi-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .kpi-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .kpi-value {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-light);
+      font-family: 'Inter', 'Cairo', sans-serif;
+    }
+
+    .kpi-value.gold-text {
+      color: var(--gold-color);
+    }
+
+    /* ==========================================================================
+       Visualizations & Analytics Layout (Charts)
+       ========================================================================== */
+    .row-charts {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 1024px) {
+      .row-charts {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .chart-card {
+      background: var(--bg-dark-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      position: relative;
+    }
+
+    .chart-card h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chart-container {
+      position: relative;
+      width: 100%;
+      height: 280px;
+    }
+
+    /* ==========================================================================
+       Top Sales & Detailed Log Layout
+       ========================================================================== */
+    .row-data-tables {
+      display: grid;
+      grid-template-columns: 1.1fr 1.9fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 1024px) {
+      .row-data-tables {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .table-card {
+      background: var(--bg-dark-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .table-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .table-card-header h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .search-box {
+      position: relative;
+      width: 220px;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px 8px 30px;
+      color: var(--text-light);
+      font-size: 12px;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    .search-box input:focus {
+      border-color: var(--accent-green);
+    }
+
+    .search-box svg {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 14px;
+      height: 14px;
+      color: var(--text-muted);
+    }
+
+    .table-container {
+      overflow-x: auto;
+      max-height: 380px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: right;
+      font-size: 13px;
+    }
+
+    .data-table th {
+      background: rgba(15, 23, 42, 0.5);
+      padding: 12px 14px;
+      font-weight: 700;
+      color: var(--text-light);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .data-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-muted);
+      transition: var(--transition);
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .data-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-light);
+    }
+
+    /* Table Badges & Status */
+    .badge-payment {
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-payment.cash {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .badge-payment.card {
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+
+    .item-rank-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+    }
+
+    tr:nth-child(1) .item-rank-badge {
+      background: var(--gold-glow);
+      color: var(--gold-color);
+      border: 1px solid var(--gold-color);
+    }
+
+    tr:nth-child(2) .item-rank-badge {
+      background: rgba(200, 200, 200, 0.1);
+      color: #c8c8c8;
+      border: 1px solid #c8c8c8;
+    }
+
+    tr:nth-child(3) .item-rank-badge {
+      background: rgba(205, 127, 50, 0.1);
+      color: #cd7f32;
+      border: 1px solid #cd7f32;
+    }
+
+    .badge-category {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-light);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    .btn-view-receipt {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--accent-green);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 700;
+      transition: var(--transition);
+    }
+
+    .btn-view-receipt:hover {
+      background: var(--accent-green);
+      color: #0f172a;
+    }
+
+    /* ==========================================================================
+       Premium Floating Receipt Modal
+       ========================================================================== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal-container {
+      background: #ffffff;
+      color: #000000;
+      border-radius: var(--radius-md);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+      width: 100%;
+      max-width: 380px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+      animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(30px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .modal-close-btn {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: #e2e8f0;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 18px;
+      color: #1e293b;
+      z-index: 20;
+    }
+
+    .modal-close-btn:hover {
+      background: #cbd5e1;
+    }
+
+    /* Embedded Thermal Receipt Stylesheet matching real POS print */
+    .receipt-modal-content {
+      padding: 30px 24px 40px 24px;
+      font-family: 'Cairo', sans-serif;
+      direction: rtl;
+    }
+
+    .receipt-modal-content * {
+      color: #000000 !important;
+    }
+
+    .receipt-header {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    .receipt-header h2 {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+
+    .receipt-header p {
+      font-size: 11px;
+      font-style: italic;
+      color: #444 !important;
+    }
+
+    .receipt-divider {
+      border-top: 1px dashed #000000;
+      margin: 12px 0;
+    }
+
+    .receipt-details-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      font-size: 12px;
+    }
+
+    .receipt-details-row span:first-child {
+      font-weight: bold;
+    }
+
+    .receipt-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 12px;
+    }
+
+    .receipt-table th {
+      border-bottom: 1px dashed #000000;
+      padding: 6px 0;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .receipt-table td {
+      padding: 6px 0;
+    }
+
+    .receipt-totals {
+      margin-top: 10px;
+      font-size: 12px;
+    }
+
+    .receipt-totals .row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .receipt-totals .row.grand-total {
+      font-weight: 800;
+      font-size: 14px;
+      border-top: 1px dashed #000000;
+      padding-top: 10px;
+      margin-top: 6px;
+    }
+
+    .receipt-footer {
+      text-align: center;
+      margin-top: 25px;
+      font-size: 10px;
+      color: #555 !important;
+    }
+
+    /* Print Report Mode Stylings */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+
+      .dashboard-header,
+      .filter-panel,
+      .header-actions,
+      .btn,
+      .search-box,
+      .modal-overlay,
+      .chart-card {
+        display: none !important;
+      }
+
+      .dashboard-wrapper {
+        display: block !important;
+      }
+
+      .dashboard-content {
+        padding: 0 !important;
+        gap: 15px !important;
+      }
+
+      .kpi-grid {
+        grid-template-columns: repeat(5, 1fr) !important;
+        gap: 10px !important;
+      }
+
+      .kpi-card {
+        background: #ffffff !important;
+        border: 1px solid #cccccc !important;
+        box-shadow: none !important;
+        color: #000 !important;
+        padding: 12px !important;
+        border-right-width: 4px !important;
+      }
+
+      .kpi-value,
+      .kpi-label,
+      .kpi-icon {
+        color: #000 !important;
+      }
+
+      .row-data-tables {
+        grid-template-columns: 1fr !important;
+      }
+
+      .table-card {
+        background: #ffffff !important;
+        border: 1px solid #cccccc !important;
+        box-shadow: none !important;
+        color: #000 !important;
+      }
+
+      .data-table th {
+        background: #f0f0f0 !important;
+        color: #000 !important;
+        border-bottom: 1px solid #000 !important;
+      }
+
+      .data-table td {
+        color: #000 !important;
+        border-bottom: 1px solid #eeeeee !important;
+      }
+
+      .btn-view-receipt {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ==========================================================================
+       1. SECURE LOGIN VIEW PANEL
+       ========================================================================== -->
+  <div class="login-container" id="login-container">
+    <div class="login-card">
+      <div class="login-logo">
+        <img src="./assets/logo.png" alt="Bistro Logo"
+          onerror="this.src='https://placehold.co/100/1e293b/10b981?text=Bistro'">
+      </div>
+
+      <div class="login-header">
+        <h1>Finance Portal</h1>
+        <p>بوابة التحليل المالي والتقارير الاستراتيجية الآمنة للمالكين</p>
+      </div>
+
+      <div class="login-error" id="login-error-container">
+        <span></span>
+        <span id="login-error-message">خطأ في البريد الإلكتروني أو كلمة المرور!</span>
+      </div>
+
+      <form id="login-form" onsubmit="handleLoginSubmit(event)">
+        <div class="form-group">
+          <label for="email-input">البريد الإلكتروني المعتمد</label>
+          <div class="input-wrapper">
+            <input type="email" id="email-input" class="form-control" placeholder="example@restaurant.com" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password-input">رمز العبور السري</label>
+          <div class="input-wrapper">
+            <input type="password" id="password-input" class="form-control" placeholder="••••••••" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-login" id="btn-login-text">تسجيل دخول آمن</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       2. SECURE FINANCIAL DASHBOARD WRAPPER
+       ========================================================================== -->
+  <div class="dashboard-wrapper" id="dashboard-wrapper">
+
+    <!-- Dashboard Top Sticky Header -->
+    <header class="dashboard-header">
+      <div class="header-brand">
+        <div class="header-logo">
+          <img src="./assets/logo.png" alt="Logo">
+        </div>
+        <div class="header-brand-info">
+          <h2>بوابة المالية والتحليلية</h2>
+          <p><span class="pulse-dot"></span> متصل بقاعدة البيانات السحابية (محدث تلقائياً)</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="refreshDashboardData()">تحديث حي</button>
+        <button class="btn btn-secondary" onclick="window.print()">طباعة التقرير المالي</button>
+        <button class="btn btn-logout" onclick="handleLogout()">تسجيل الخروج</button>
+      </div>
+    </header>
+
+    <!-- Dashboard Body Content -->
+    <main class="dashboard-content">
+
+      <!-- Interactive Date and Payment Filter Bar -->
+      <section class="filter-panel">
+        <div class="filter-left">
+          <button class="filter-btn active" id="range-btn-today" onclick="setPresetRange('today')">اليوم</button>
+          <button class="filter-btn" id="range-btn-yesterday" onclick="setPresetRange('yesterday')">أمس</button>
+          <button class="filter-btn" id="range-btn-7days" onclick="setPresetRange('7days')">آخر 7 أيام</button>
+          <button class="filter-btn" id="range-btn-30days" onclick="setPresetRange('30days')">آخر 30 يوم</button>
+          <button class="filter-btn" id="range-btn-all" onclick="setPresetRange('all')">الكل</button>
+
+          <div class="custom-range-wrapper">
+            <label>من:</label>
+            <input type="date" id="filter-date-from" class="date-input" onchange="triggerCustomRangeChange()">
+            <label>إلى:</label>
+            <input type="date" id="filter-date-to" class="date-input" onchange="triggerCustomRangeChange()">
+          </div>
+        </div>
+
+        <div class="filter-right" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <select id="filter-payment-method" class="select-dropdown" onchange="applyFilters()">
+            <option value="all">كل طرق الدفع</option>
+            <option value="cash">نقدي (Cash)</option>
+            <option value="card">شبكة / بنك (Card)</option>
+          </select>
+          <button class="btn btn-primary" onclick="exportToCSV()">تصدير CSV</button>
+        </div>
+      </section>
+
+      <!-- KPI Summary Cards Grid -->
+      <section class="kpi-grid">
+        <!-- Revenue -->
+        <div class="kpi-card kpi-revenue">
+          <div class="kpi-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">صافي الإيرادات</span>
+            <span class="kpi-value gold-text" id="kpi-total-revenue">0 ل.س</span>
+          </div>
+        </div>
+
+        <!-- Orders -->
+        <div class="kpi-card kpi-orders">
+          <div class="kpi-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">إجمالي الطلبات (الفواتير)</span>
+            <span class="kpi-value" id="kpi-total-orders">0</span>
+          </div>
+        </div>
+
+        <!-- Average Ticket -->
+        <div class="kpi-card kpi-average">
+          <div class="kpi-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="16" />
+              <line x1="8" y1="12" x2="16" y2="12" />
+            </svg>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">متوسط سلة المبيعات</span>
+            <span class="kpi-value" id="kpi-average-ticket">0 ل.س</span>
+          </div>
+        </div>
+
+        <!-- Discounts -->
+        <div class="kpi-card kpi-discounts">
+          <div class="kpi-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="19" y1="5" x2="5" y2="19" />
+              <circle cx="6.5" cy="6.5" r="2.5" />
+              <circle cx="17.5" cy="17.5" r="2.5" />
+            </svg>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">الحسومات الممنوحة</span>
+            <span class="kpi-value" id="kpi-total-discounts" style="color: #f43f5e;">0 ل.س</span>
+          </div>
+        </div>
+
+        <!-- Taxes -->
+        <div class="kpi-card kpi-taxes">
+          <div class="kpi-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+          </div>
+          <div class="kpi-info">
+            <span class="kpi-label">إجمالي الضريبة (15%)</span>
+            <span class="kpi-value" id="kpi-total-taxes" style="color: #a855f7;">0 ل.س</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Row 1: Charts Section -->
+      <section class="row-charts">
+        <!-- Sales Trend Line Chart -->
+        <div class="chart-card">
+          <h3>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+              <polyline points="17 6 23 6 23 12" />
+            </svg>
+            منحنى الإيرادات والمبيعات خلال الفترة
+          </h3>
+          <div class="chart-container">
+            <canvas id="chart-sales-trend"></canvas>
+          </div>
+        </div>
+
+        <!-- Payment Breakdowns -->
+        <div class="chart-card">
+          <h3>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+              <line x1="1" y1="10" x2="23" y2="10" />
+            </svg>
+            توزيع طرق الدفع
+          </h3>
+          <div class="chart-container">
+            <canvas id="chart-payment-breakdown"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Row 2: Charts Section -->
+      <section class="row-charts">
+        <!-- Peak Hours -->
+        <div class="chart-card">
+          <h3>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            تحليل أوقات الذروة المبيعات حسب الساعة (00:00 - 23:00)
+          </h3>
+          <div class="chart-container">
+            <canvas id="chart-peak-hours"></canvas>
+          </div>
+        </div>
+
+        <!-- Category Performance -->
+        <div class="chart-card">
+          <h3>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+            حجم المبيعات حسب الأقسام (التصنيفات)
+          </h3>
+          <div class="chart-container">
+            <canvas id="chart-category-breakdown"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Row 3: Product Standings & Sales Log Tables -->
+      <section class="row-data-tables">
+
+        <!-- Best Selling Items Standing -->
+        <div class="table-card">
+          <div class="table-card-header">
+            <h3>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon
+                  points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+              الأصناف الأكثر مبيعاً (Top Sellers)
+            </h3>
+          </div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 15%; text-align: center;">الترتيب</th>
+                  <th style="width: 40%;">اسم الصنف</th>
+                  <th style="width: 25%; text-align: center;">الكمية المباعة</th>
+                  <th style="width: 20%; text-align: left;">المجموع</th>
+                </tr>
+              </thead>
+              <tbody id="top-sellers-table-body">
+                <!-- Renders Dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Detailed Sales Logs Table -->
+        <div class="table-card">
+          <div class="table-card-header">
+            <h3>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+                <polyline points="10 9 9 9 8 9" />
+              </svg>
+              سجل الفواتير والمبيعات المفصل
+            </h3>
+
+            <div class="search-box">
+              <input type="text" id="sales-search-input" placeholder="ابحث برقم الفاتورة أو الطاولة..."
+                oninput="applyFilters()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>رقم الفاتورة</th>
+                  <th>التاريخ والوقت</th>
+                  <th style="text-align: center;">الطاولة</th>
+                  <th style="text-align: center;">طريقة الدفع</th>
+                  <th style="text-align: left;">الحسم</th>
+                  <th style="text-align: left;">الصافي النهائي</th>
+                  <th style="text-align: center;">الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="sales-log-table-body">
+                <!-- Renders Dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ==========================================================================
+       3. PREMIUM FLOATING THERMAL RECEIPT MODAL
+       ========================================================================== -->
+  <div class="modal-overlay" id="modal-receipt-overlay" onclick="closeReceiptModal(event)">
+    <div class="modal-container" onclick="event.stopPropagation()">
+      <button class="modal-close-btn" onclick="hideReceiptModal()">&times;</button>
+
+      <div class="receipt-modal-content">
+        <!-- Content will be rendered dynamically matching POS printed receipt -->
+        <div id="receipt-modal-render-area"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       Scripts & Database Controllers
+       ========================================================================== -->
+  <!-- Firebase Compat Core SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <!-- Main Database Driver -->
+  <script src="database.js"></script>
+  <!-- Chart.js Engine CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    // ==========================================================================
+    // SECURE CREDENTIALS AND STATE MANAGEMENT
+    // ==========================================================================
+
+    // System States
+    let dbInstance = null;
+    let salesData = [];
+    let categoriesData = [];
+    let productsData = [];
+
+    // Filter State
+    let activeRange = 'today'; // today, yesterday, 7days, 30days, all, custom
+    let activeFilters = {
+      dateFrom: null,
+      dateTo: null,
+      paymentMethod: 'all',
+      searchQuery: ''
+    };
+
+    // Chart.js Chart Instances for dynamic updates
+    let chartSalesTrend = null;
+    let chartPaymentBreakdown = null;
+    let chartPeakHours = null;
+    let chartCategoryBreakdown = null;
+
+    // Check session on load
+    window.addEventListener('DOMContentLoaded', () => {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+
+      firebase.auth().onAuthStateChanged((user) => {
+        if (user) {
+          showDashboard();
+        } else {
+          document.getElementById('login-container').style.display = 'flex';
+          document.getElementById('dashboard-wrapper').style.display = 'none';
+        }
+      });
+    });
+
+    // ==========================================================================
+    // AUTHENTICATION FLOW
+    // ==========================================================================
+    async function handleLoginSubmit(e) {
+      e.preventDefault();
+
+      const email = document.getElementById('email-input').value.trim();
+      const password = document.getElementById('password-input').value.trim();
+
+      const errorContainer = document.getElementById('login-error-container');
+      const loginBtn = document.getElementById('btn-login-text');
+
+      errorContainer.style.display = 'none';
+      loginBtn.textContent = 'جاري التحقق والدخول...';
+      loginBtn.style.opacity = '0.7';
+      loginBtn.disabled = true;
+
+      try {
+        await firebase.auth().signInWithEmailAndPassword(email, password);
+      } catch (err) {
+        console.error('Login failed:', err);
+        errorContainer.style.display = 'flex';
+        document.getElementById('password-input').value = '';
+        loginBtn.textContent = 'تسجيل دخول آمن';
+        loginBtn.style.opacity = '1';
+        loginBtn.disabled = false;
+
+        // Retrigger shake animation
+        errorContainer.style.animation = 'none';
+        errorContainer.offsetHeight; /* trigger reflow */
+        errorContainer.style.animation = 'shake 0.5s ease';
+      }
+    }
+
+    async function handleLogout() {
+      try {
+        await firebase.auth().signOut();
+      } catch (err) {
+        console.error('Logout failed:', err);
+      }
+      window.location.reload();
+    }
+
+    // ==========================================================================
+    // INITIALIZATION & FIREBASE RETRIEVAL
+    // ==========================================================================
+    async function showDashboard() {
+      document.getElementById('login-container').style.display = 'none';
+      document.getElementById('dashboard-wrapper').style.display = 'flex';
+
+      setPresetRange('today'); // Default range is Today
+
+      // Initialize Database Connection
+      dbInstance = new BistroDatabase();
+      const success = await dbInstance.init();
+
+      if (!success) {
+        alert('فشل الاتصال بقاعدة بيانات Firebase! يرجى التأكد من إدخال الإعدادات الصحيحة في ملف database.js أولاً.');
+        return;
+      }
+
+      await loadRawData();
+    }
+
+    async function loadRawData() {
+      if (!dbInstance) return;
+
+      try {
+        // Parallel fetching
+        const [sales, categories, products] = await Promise.all([
+          dbInstance.getSalesHistory(),
+          dbInstance.getAll('categories'),
+          dbInstance.getAll('products')
+        ]);
+
+        salesData = sales || [];
+        categoriesData = categories || [];
+        productsData = products || [];
+
+        // Sort sales by timestamp descending
+        salesData.sort((a, b) => (b.timestamp || b.endTime) - (a.timestamp || a.endTime));
+
+        // Synchronize UI
+        applyFilters();
+      } catch (err) {
+        console.error('Error loading data from Firestore:', err);
+      }
+    }
+
+    async function refreshDashboardData() {
+      const refreshBtn = document.querySelector('.header-actions button');
+      refreshBtn.textContent = 'جاري التحديث...';
+      await loadRawData();
+      setTimeout(() => {
+        refreshBtn.textContent = 'تحديث حي';
+      }, 500);
+    }
+
+    // ==========================================================================
+    // FILTER MANAGEMENT & TIMESTAMPS
+    // ==========================================================================
+    function setPresetRange(range) {
+      activeRange = range;
+
+      // Remove active classes
+      document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+
+      // Add active class to clicked button
+      const btnId = `range-btn-${range}`;
+      const btnEl = document.getElementById(btnId);
+      if (btnEl) btnEl.classList.add('active');
+
+      const today = new Date();
+
+      // Clear Custom Range Inputs
+      document.getElementById('filter-date-from').value = '';
+      document.getElementById('filter-date-to').value = '';
+
+      if (range === 'today') {
+        const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+        const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+        activeFilters.dateFrom = start.getTime();
+        activeFilters.dateTo = end.getTime();
+      }
+      else if (range === 'yesterday') {
+        const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1, 0, 0, 0, 0);
+        const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1, 23, 59, 59, 999);
+        activeFilters.dateFrom = start.getTime();
+        activeFilters.dateTo = end.getTime();
+      }
+      else if (range === '7days') {
+        const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6, 0, 0, 0, 0);
+        const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+        activeFilters.dateFrom = start.getTime();
+        activeFilters.dateTo = end.getTime();
+      }
+      else if (range === '30days') {
+        const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 29, 0, 0, 0, 0);
+        const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+        activeFilters.dateFrom = start.getTime();
+        activeFilters.dateTo = end.getTime();
+      }
+      else if (range === 'all') {
+        activeFilters.dateFrom = null;
+        activeFilters.dateTo = null;
+      }
+
+      applyFilters();
+    }
+
+    function triggerCustomRangeChange() {
+      const fromVal = document.getElementById('filter-date-from').value;
+      const toVal = document.getElementById('filter-date-to').value;
+
+      if (fromVal || toVal) {
+        // Remove active class from presets
+        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        activeRange = 'custom';
+
+        if (fromVal) {
+          const fromDate = new Date(fromVal);
+          fromDate.setHours(0, 0, 0, 0);
+          activeFilters.dateFrom = fromDate.getTime();
+        } else {
+          activeFilters.dateFrom = null;
+        }
+
+        if (toVal) {
+          const toDate = new Date(toVal);
+          toDate.setHours(23, 59, 59, 999);
+          activeFilters.dateTo = toDate.getTime();
+        } else {
+          activeFilters.dateTo = null;
+        }
+
+        applyFilters();
+      }
+    }
+
+    // ==========================================================================
+    // METRICS COMPILER & RENDERING DYNAMICS
+    // ==========================================================================
+    function applyFilters() {
+      // 1. Gather current form constraints
+      activeFilters.paymentMethod = document.getElementById('filter-payment-method').value;
+      activeFilters.searchQuery = document.getElementById('sales-search-input').value.trim().toLowerCase();
+
+      // 2. Filter salesData
+      const filteredSales = salesData.filter(sale => {
+        const timestamp = sale.timestamp || sale.endTime || Date.now();
+
+        // Date Check
+        if (activeFilters.dateFrom && timestamp < activeFilters.dateFrom) return false;
+        if (activeFilters.dateTo && timestamp > activeFilters.dateTo) return false;
+
+        // Payment Method Check
+        if (activeFilters.paymentMethod !== 'all') {
+          const rawMethod = String(sale.paymentMethod || '').toLowerCase();
+          const isCard = rawMethod.includes('card') || rawMethod.includes('credit') || rawMethod.includes('bank') || rawMethod.includes('بنك') || rawMethod.includes('بطاقة') || rawMethod.includes('شبكة') || rawMethod.includes('مدى');
+
+          if (activeFilters.paymentMethod === 'card' && !isCard) return false;
+          if (activeFilters.paymentMethod === 'cash' && isCard) return false;
+        }
+
+        // Search Bar Check (Invoice ID, Table Number, Customer Name)
+        if (activeFilters.searchQuery) {
+          const invoiceString = 'bis-' + String(sale.id).padStart(6, '0');
+          const tableString = 'طاولة ' + String(sale.tableNumber);
+          const customerString = String(sale.customerName || '').toLowerCase();
+
+          const matchInvoice = invoiceString.includes(activeFilters.searchQuery);
+          const matchTable = tableString.includes(activeFilters.searchQuery) || String(sale.tableNumber).includes(activeFilters.searchQuery);
+          const matchCustomer = customerString.includes(activeFilters.searchQuery);
+
+          if (!matchInvoice && !matchTable && !matchCustomer) return false;
+        }
+
+        return true;
+      });
+
+      // 3. Render KPIs, charts, and tables
+      computeKPIs(filteredSales);
+      renderCharts(filteredSales);
+      renderTables(filteredSales);
+    }
+
+    function computeKPIs(filteredSales) {
+      let revenue = 0;
+      let discounts = 0;
+      let taxes = 0;
+      const count = filteredSales.length;
+
+      filteredSales.forEach(sale => {
+        revenue += (sale.total || 0);
+        discounts += (sale.discount || 0);
+        taxes += (sale.tax || 0);
+      });
+
+      const averageTicket = count > 0 ? Math.round(revenue / count) : 0;
+
+      // Update UI
+      document.getElementById('kpi-total-revenue').textContent = formatCurrency(revenue);
+      document.getElementById('kpi-total-orders').textContent = count.toLocaleString('ar-SA');
+      document.getElementById('kpi-average-ticket').textContent = formatCurrency(averageTicket);
+      document.getElementById('kpi-total-discounts').textContent = formatCurrency(discounts);
+      document.getElementById('kpi-total-taxes').textContent = formatCurrency(taxes);
+    }
+
+    function formatCurrency(val) {
+      return Math.round(val || 0).toLocaleString('ar-SA') + ' ل.س';
+    }
+
+    // ==========================================================================
+    // CHART RENDERING (CHART.JS INTERFACING)
+    // ==========================================================================
+    function renderCharts(filteredSales) {
+      renderSalesTrendChart(filteredSales);
+      renderPaymentBreakdownChart(filteredSales);
+      renderPeakHoursChart(filteredSales);
+      renderCategoryPerformanceChart(filteredSales);
+    }
+
+    // Chart 1: Sales Trend (Daily progress or hourly if today)
+    function renderSalesTrendChart(filteredSales) {
+      const ctx = document.getElementById('chart-sales-trend').getContext('2d');
+
+      if (chartSalesTrend) chartSalesTrend.destroy();
+
+      const salesMap = new Map();
+
+      if (activeRange === 'today' || activeRange === 'yesterday') {
+        // Group by Hour
+        for (let h = 0; h < 24; h++) salesMap.set(`${h}:00`, 0);
+        filteredSales.forEach(sale => {
+          const date = new Date(sale.timestamp || sale.endTime);
+          const hrStr = `${date.getHours()}:00`;
+          salesMap.set(hrStr, (salesMap.get(hrStr) || 0) + (sale.total || 0));
+        });
+      } else {
+        // Group by Date
+        filteredSales.forEach(sale => {
+          const date = new Date(sale.timestamp || sale.endTime);
+          const dateStr = date.toLocaleDateString('ar-SA', { month: 'numeric', day: 'numeric' });
+          salesMap.set(dateStr, (salesMap.get(dateStr) || 0) + (sale.total || 0));
+        });
+      }
+
+      // Convert Map back to arrays (sorted chronological)
+      let labels = Array.from(salesMap.keys());
+      let values = Array.from(salesMap.values());
+
+      if (activeRange !== 'today' && activeRange !== 'yesterday') {
+        // If sorting dates is required, we can reverse it since Firestore retrieves newest first
+        labels.reverse();
+        values.reverse();
+      }
+
+      // Forest green gradient for lines
+      const gradient = ctx.createLinearGradient(0, 0, 0, 240);
+      gradient.addColorStop(0, 'rgba(16, 185, 129, 0.3)');
+      gradient.addColorStop(1, 'rgba(16, 185, 129, 0.0)');
+
+      chartSalesTrend = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'المبيعات',
+            data: values,
+            borderColor: '#10b981',
+            borderWidth: 3,
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#10b981',
+            pointHoverRadius: 7
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              titleFont: { family: 'Cairo' },
+              bodyFont: { family: 'Cairo' },
+              callbacks: {
+                label: (context) => ` الإيرادات: ${context.parsed.y.toLocaleString('ar-SA')} ل.س`
+              }
+            }
+          },
+          scales: {
+            y: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: {
+                color: '#94a3b8',
+                font: { family: 'Cairo', size: 10 },
+                callback: (val) => val.toLocaleString('ar-SA')
+              }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: '#94a3b8', font: { family: 'Cairo', size: 10 } }
+            }
+          }
+        }
+      });
+    }
+
+    // Chart 2: Payment Breakdown (Cash vs Card)
+    function renderPaymentBreakdownChart(filteredSales) {
+      const ctx = document.getElementById('chart-payment-breakdown').getContext('2d');
+      if (chartPaymentBreakdown) chartPaymentBreakdown.destroy();
+
+      let cashTotal = 0;
+      let cardTotal = 0;
+
+      filteredSales.forEach(sale => {
+        const rawMethod = String(sale.paymentMethod || '').toLowerCase();
+        const isCard = rawMethod.includes('card') || rawMethod.includes('credit') || rawMethod.includes('bank') || rawMethod.includes('بنك') || rawMethod.includes('بطاقة') || rawMethod.includes('شبكة') || rawMethod.includes('مدى');
+
+        if (isCard) {
+          cardTotal += (sale.total || 0);
+        } else {
+          cashTotal += (sale.total || 0);
+        }
+      });
+
+      chartPaymentBreakdown = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['نقدي (Cash)', 'شبكة / مدى (Card)'],
+          datasets: [{
+            data: [cashTotal, cardTotal],
+            backgroundColor: ['#10b981', '#38bdf8'],
+            borderWidth: 0,
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#94a3b8', font: { family: 'Cairo', size: 11 } }
+            },
+            tooltip: {
+              titleFont: { family: 'Cairo' },
+              bodyFont: { family: 'Cairo' },
+              callbacks: {
+                label: (context) => ` ${context.label}: ${context.parsed.toLocaleString('ar-SA')} ل.س`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Chart 3: Peak Hours (0-23)
+    function renderPeakHoursChart(filteredSales) {
+      const ctx = document.getElementById('chart-peak-hours').getContext('2d');
+      if (chartPeakHours) chartPeakHours.destroy();
+
+      const hours = Array(24).fill(0);
+      filteredSales.forEach(sale => {
+        const date = new Date(sale.timestamp || sale.endTime);
+        const hr = date.getHours();
+        hours[hr] += (sale.total || 0);
+      });
+
+      // Filter to only display hours where there is revenue, or display standard operational range 8:00 - 23:00
+      let labels = [];
+      let data = [];
+      for (let i = 0; i < 24; i++) {
+        labels.push(`${String(i).padStart(2, '0')}:00`);
+        data.push(hours[i]);
+      }
+
+      chartPeakHours = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: 'rgba(16, 185, 129, 0.65)',
+            hoverBackgroundColor: '#10b981',
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              titleFont: { family: 'Cairo' },
+              bodyFont: { family: 'Cairo' },
+              callbacks: {
+                label: (context) => ` المبيعات: ${context.parsed.y.toLocaleString('ar-SA')} ل.س`
+              }
+            }
+          },
+          scales: {
+            y: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: {
+                color: '#94a3b8',
+                font: { family: 'Cairo', size: 9 },
+                callback: (val) => val.toLocaleString('ar-SA')
+              }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: '#94a3b8', font: { family: 'Cairo', size: 9 } }
+            }
+          }
+        }
+      });
+    }
+
+    // Chart 4: Category Performance (doughnut)
+    function renderCategoryPerformanceChart(filteredSales) {
+      const ctx = document.getElementById('chart-category-breakdown').getContext('2d');
+      if (chartCategoryBreakdown) chartCategoryBreakdown.destroy();
+
+      const catMap = new Map();
+
+      // Set default categories to avoid empty display
+      categoriesData.forEach(cat => catMap.set(cat.name, 0));
+
+      filteredSales.forEach(sale => {
+        (sale.items || []).forEach(item => {
+          // If item has isHospitality = true and price total is 0, we still count volume or ignore depending on revenue vs volume
+          // Let's analyze Category Revenue (only positive billing items)
+          if (!item.isHospitality) {
+            const productInfo = productsData.find(p => p.id === item.productId || p.name === item.name);
+            let catName = 'أخرى';
+            if (productInfo) {
+              const catInfo = categoriesData.find(c => c.id === productInfo.categoryId);
+              if (catInfo) catName = catInfo.name;
+            } else {
+              // Fallback: search item object for category fields
+              if (item.categoryName) catName = item.categoryName;
+            }
+
+            const itemTotal = (item.price || 0) * (item.quantity || 0);
+            catMap.set(catName, (catMap.get(catName) || 0) + itemTotal);
+          }
+        });
+      });
+
+      // Filter out categories with 0 sales for clean doughnut
+      const labels = [];
+      const values = [];
+      catMap.forEach((v, k) => {
+        if (v > 0) {
+          labels.push(k);
+          values.push(v);
+        }
+      });
+
+      // Harmonic palette
+      const colors = ['#e2b842', '#10b981', '#a855f7', '#f43f5e', '#38bdf8', '#fb923c', '#f472b6', '#34d399'];
+
+      chartCategoryBreakdown = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels.length > 0 ? labels : ['لا توجد مبيعات في الفترة'],
+          datasets: [{
+            data: values.length > 0 ? values : [1],
+            backgroundColor: values.length > 0 ? colors.slice(0, labels.length) : ['#334155'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#94a3b8', font: { family: 'Cairo', size: 10 } }
+            },
+            tooltip: {
+              titleFont: { family: 'Cairo' },
+              bodyFont: { family: 'Cairo' },
+              callbacks: {
+                label: (context) => {
+                  if (values.length === 0) return ' لا توجد بيانات';
+                  return ` ${context.label}: ${context.parsed.toLocaleString('ar-SA')} ل.س`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // ==========================================================================
+    // TABLES RENDERERS (BEST SELLERS & TRANSACTION LOGS)
+    // ==========================================================================
+    function renderTables(filteredSales) {
+      renderTopSellersTable(filteredSales);
+      renderSalesLogTable(filteredSales);
+    }
+
+    // Top Selling Products Standings Table
+    function renderTopSellersTable(filteredSales) {
+      const tbody = document.getElementById('top-sellers-table-body');
+      tbody.innerHTML = '';
+
+      const productMap = new Map();
+
+      filteredSales.forEach(sale => {
+        (sale.items || []).forEach(item => {
+          const prodId = item.productId || item.name;
+          const current = productMap.get(prodId) || {
+            name: item.name,
+            quantity: 0,
+            totalRevenue: 0,
+            productId: item.productId
+          };
+
+          current.quantity += (item.quantity || 0);
+          if (!item.isHospitality) {
+            current.totalRevenue += (item.price || 0) * (item.quantity || 0);
+          }
+
+          productMap.set(prodId, current);
+        });
+      });
+
+      // Sort descending by quantity
+      const sortedProducts = Array.from(productMap.values());
+      sortedProducts.sort((a, b) => b.quantity - a.quantity);
+
+      // Render top 10 items
+      const top10 = sortedProducts.slice(0, 10);
+
+      if (top10.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px 10px;">لا توجد أي مبيعات للأصناف في هذه الفترة.</td></tr>`;
+        return;
+      }
+
+      top10.forEach((item, index) => {
+        // Find category
+        const productInfo = productsData.find(p => p.id === item.productId || p.name === item.name);
+        let catBadge = '';
+        if (productInfo) {
+          const catInfo = categoriesData.find(c => c.id === productInfo.categoryId);
+          if (catInfo) catBadge = `<span class="badge-category">${catInfo.name}</span>`;
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="text-align: center;"><span class="item-rank-badge">${index + 1}</span></td>
+          <td>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <span style="font-weight: 600; color: var(--text-light);">${item.name}</span>
+              <div>${catBadge}</div>
+            </div>
+          </td>
+          <td style="text-align: center; font-weight: bold; font-family: 'Inter', sans-serif;">${item.quantity}</td>
+          <td style="text-align: left; font-weight: bold; font-family: 'Inter', sans-serif; color: var(--text-light);">${item.totalRevenue.toLocaleString('ar-SA')} ل.س</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Sales Logs Table
+    function renderSalesLogTable(filteredSales) {
+      const tbody = document.getElementById('sales-log-table-body');
+      tbody.innerHTML = '';
+
+      if (filteredSales.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px 10px;">لا توجد فواتير مطابقة للخيارات المحددة.</td></tr>`;
+        return;
+      }
+
+      filteredSales.forEach(sale => {
+        const timestamp = sale.timestamp || sale.endTime || Date.now();
+        const dateStr = new Date(timestamp).toLocaleString('ar-SA', {
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        const invoiceIdStr = 'Bis-' + String(sale.id).padStart(6, '0');
+
+        // Payment Badge
+        const rawMethod = String(sale.paymentMethod || '').toLowerCase();
+        const isCard = rawMethod.includes('card') || rawMethod.includes('credit') || rawMethod.includes('bank') || rawMethod.includes('بنك') || rawMethod.includes('بطاقة') || rawMethod.includes('شبكة') || rawMethod.includes('مدى');
+        const paymentBadge = isCard
+          ? `<span class="badge-payment card">شبكة</span>`
+          : `<span class="badge-payment cash">كاش</span>`;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-weight: bold; font-family: 'Inter', sans-serif; color: var(--text-light);">${invoiceIdStr}</td>
+          <td>${dateStr}</td>
+          <td style="text-align: center; font-weight: 600;">طاولة ${sale.tableNumber}</td>
+          <td style="text-align: center;">${paymentBadge}</td>
+          <td style="text-align: left; font-family: 'Inter', sans-serif;">${(sale.discount || 0).toLocaleString('ar-SA')} ل.س</td>
+          <td style="text-align: left; font-weight: bold; font-family: 'Inter', sans-serif; color: var(--gold-color);">${(sale.total || 0).toLocaleString('ar-SA')} ل.س</td>
+          <td style="text-align: center;">
+            <button class="btn-view-receipt" onclick="viewReceiptSlip('${sale.id}')">عرض</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ==========================================================================
+    // FLOATING INVOICE MOCKUP CONTROLLERS (THERMAL RECEIPT VIEW)
+    // ==========================================================================
+    function viewReceiptSlip(saleId) {
+      const sale = salesData.find(s => String(s.id) === String(saleId));
+      if (!sale) return;
+
+      const formattedInvoiceId = 'Bis-' + String(sale.id).padStart(6, '0');
+      const formattedDate = new Date(sale.timestamp || sale.endTime || Date.now()).toLocaleString('ar-SA');
+
+      // Payment Display
+      const rawMethod = String(sale.paymentMethod || '').toLowerCase();
+      const isCard = rawMethod.includes('card') || rawMethod.includes('credit') || rawMethod.includes('bank') || rawMethod.includes('بنك') || rawMethod.includes('بطاقة') || rawMethod.includes('شبكة') || rawMethod.includes('مدى');
+      const displayPaymentMethod = isCard ? 'بنك / شبكة' : 'كاش';
+
+      let itemsHtml = '';
+      (sale.items || []).forEach(item => {
+        const originalTotal = (item.price || 0) * (item.quantity || 0);
+        if (item.isHospitality) {
+          itemsHtml += `
+            <tr>
+              <td style="padding: 6px 0; font-weight: bold;">
+                ${item.name} <span style="font-size: 9px; font-weight: bold; padding: 1px 4px; border: 1px solid #000; border-radius: 2px;">ضيافة</span>
+              </td>
+              <td style="padding: 6px 0; text-align: center;">${item.quantity}</td>
+              <td style="padding: 6px 0; text-align: left;">
+                <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                  <span style="font-size: 9px; text-decoration: line-through; opacity: 0.5;">${originalTotal.toLocaleString('ar-SA')} ل.س</span>
+                  <span style="font-weight: bold;">0 ل.س</span>
+                </div>
+              </td>
+            </tr>
+          `;
+        } else {
+          itemsHtml += `
+            <tr>
+              <td style="padding: 6px 0;">${item.name}</td>
+              <td style="padding: 6px 0; text-align: center;">${item.quantity}</td>
+              <td style="padding: 6px 0; text-align: left;">${originalTotal.toLocaleString('ar-SA')} ل.س</td>
+            </tr>
+          `;
+        }
+      });
+
+      let discountHtml = '';
+      if (sale.discount && sale.discount > 0) {
+        discountHtml = `
+          <div class="row">
+            <span>الحسم الإضافي:</span>
+            <span>-${sale.discount.toLocaleString('ar-SA')} ل.س</span>
+          </div>
+        `;
+      }
+
+      const renderArea = document.getElementById('receipt-modal-render-area');
+      renderArea.innerHTML = `
+        <div class="receipt-header">
+          <h2>Restaurant</h2>
+        </div>
+        
+        <div class="receipt-divider"></div>
+        
+        <div class="receipt-details-row">
+          <span>رقم الفاتورة:</span>
+          <span>${formattedInvoiceId}</span>
+        </div>
+        <div class="receipt-details-row">
+          <span>الطاولة:</span>
+          <span>طاولة ${sale.tableNumber}</span>
+        </div>
+        <div class="receipt-details-row">
+          <span>الزبون:</span>
+          <span>${sale.customerName || 'زبون عام'}</span>
+        </div>
+        <div class="receipt-details-row">
+          <span>طريقة الدفع:</span>
+          <span>${displayPaymentMethod}</span>
+        </div>
+        <div class="receipt-details-row">
+          <span>التاريخ والوقت:</span>
+          <span>${formattedDate}</span>
+        </div>
+        
+        <div class="receipt-divider"></div>
+        
+        <table class="receipt-table">
+          <thead>
+            <tr>
+              <th style="text-align: right; width: 55%;">الصنف</th>
+              <th style="text-align: center; width: 15%;">العدد</th>
+              <th style="text-align: left; width: 30%;">الإجمالي</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+        
+        <div class="receipt-divider"></div>
+        
+        <div class="receipt-totals">
+          <div class="row">
+            <span>المجموع الفرعي:</span>
+            <span>${(sale.subtotal || 0).toLocaleString('ar-SA')} ل.س</span>
+          </div>
+          ${discountHtml}
+          <div class="row">
+            <span>الضريبة والخدمة (${sale.taxRate || 15}%):</span>
+            <span>${(sale.tax || 0).toLocaleString('ar-SA')} ل.س</span>
+          </div>
+          <div class="row grand-total">
+            <span>المجموع النهائي:</span>
+            <span>${(sale.total || 0).toLocaleString('ar-SA')} ل.س</span>
+          </div>
+        </div>
+        
+        <div class="receipt-divider"></div>
+        
+        <div class="receipt-footer">
+          <p>شكراً لزيارتكم! نأمل رؤيتكم قريباً</p>
+        </div>
+      `;
+
+      document.getElementById('modal-receipt-overlay').style.display = 'flex';
+    }
+
+    function hideReceiptModal() {
+      document.getElementById('modal-receipt-overlay').style.display = 'none';
+    }
+
+    function closeReceiptModal(e) {
+      if (e.target.id === 'modal-receipt-overlay') {
+        hideReceiptModal();
+      }
+    }
+
+    // ==========================================================================
+    // EXPORTING AND CSV COMPILES
+    // ==========================================================================
+    function exportToCSV() {
+      if (salesData.length === 0) {
+        alert('لا توجد أي بيانات مبيعات لتصديرها!');
+        return;
+      }
+
+      // Filtered sales list exactly matching current view
+      const activeFiltersPaymentMethod = document.getElementById('filter-payment-method').value;
+      const activeFiltersSearchQuery = document.getElementById('sales-search-input').value.trim().toLowerCase();
+
+      const filtered = salesData.filter(sale => {
+        const timestamp = sale.timestamp || sale.endTime || Date.now();
+        if (activeFilters.dateFrom && timestamp < activeFilters.dateFrom) return false;
+        if (activeFilters.dateTo && timestamp > activeFilters.dateTo) return false;
+
+        if (activeFiltersPaymentMethod !== 'all') {
+          const rawMethod = String(sale.paymentMethod || '').toLowerCase();
+          const isCard = rawMethod.includes('card') || rawMethod.includes('credit') || rawMethod.includes('bank') || rawMethod.includes('بنك') || rawMethod.includes('بطاقة') || rawMethod.includes('شبكة') || rawMethod.includes('مدى');
+          if (activeFiltersPaymentMethod === 'card' && !isCard) return false;
+          if (activeFiltersPaymentMethod === 'cash' && isCard) return false;
+        }
+
+        if (activeFiltersSearchQuery) {
+          const invoiceString = 'bis-' + String(sale.id).padStart(6, '0');
+          const tableString = 'طاولة ' + String(sale.tableNumber);
+          const customerString = String(sale.customerName || '').toLowerCase();
+
+          if (!invoiceString.includes(activeFiltersSearchQuery) &&
+            !tableString.includes(activeFiltersSearchQuery) &&
+            !String(sale.tableNumber).includes(activeFiltersSearchQuery) &&
+            !customerString.includes(activeFiltersSearchQuery)) return false;
+        }
+        return true;
+      });
+
+      // Construct CSV data block
+      // RTL compatibility uses UTF-8 BOM so Excel opens Arabic text correctly!
+      let csvContent = "\uFEFF";
+      csvContent += "رقم الفاتورة,التاريخ والوقت,رقم الطاولة,اسم الزبون,طريقة الدفع,المجموع الفرعي,الحسم,الضريبة والخدمة,المجموع النهائي\n";
+
+      filtered.forEach(sale => {
+        const idStr = 'Bis-' + String(sale.id).padStart(6, '0');
+        const dateStr = new Date(sale.timestamp || sale.endTime).toLocaleString('ar-SA');
+        const table = `طاولة ${sale.tableNumber}`;
+        const custName = sale.customerName || 'زبون عام';
+
+        const rawMethod = String(sale.paymentMethod || '').toLowerCase();
+        const isCard = rawMethod.includes('card') || rawMethod.includes('credit') || rawMethod.includes('bank') || rawMethod.includes('بنك') || rawMethod.includes('بطاقة') || rawMethod.includes('شبكة') || rawMethod.includes('مدى');
+        const payment = isCard ? "شبكة" : "كاش";
+
+        csvContent += `"${idStr}","${dateStr}","${table}","${custName}","${payment}",${sale.subtotal || 0},${sale.discount || 0},${sale.tax || 0},${sale.total || 0}\n`;
+      });
+
+      // Create download trigger
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      const fileNameStr = `Bistro_Sales_Report_${activeRange}_${new Date().toISOString().slice(0, 10)}.csv`;
+
+      link.setAttribute("href", url);
+      link.setAttribute("download", fileNameStr);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
+</body>
+
+</html>

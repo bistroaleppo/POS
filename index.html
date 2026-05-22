@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bistro POS | نظام إدارة المطاعم الذكي</title>
+  <link rel="icon" type="image/png" href="./assets/logo.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- App Shell Container -->
+  <div class="app-container">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="app-sidebar">
+      <div class="brand-section">
+        <div class="brand-logo">
+          <img src="./assets/logo.png" alt="Bistro Logo">
+        </div>
+        <div class="brand-info">
+          <h1>Bistro POS</h1>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <button class="nav-item active" id="nav-btn-dashboard" onclick="switchTab('dashboard')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="9" rx="1" />
+            <rect x="14" y="3" width="7" height="5" rx="1" />
+            <rect x="14" y="12" width="7" height="9" rx="1" />
+            <rect x="3" y="16" width="7" height="5" rx="1" />
+          </svg>
+          <span>الصالة والطاولات</span>
+        </button>
+
+        <button class="nav-item" id="nav-btn-menu" onclick="switchTab('menu')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <span>قائمة الطعام</span>
+        </button>
+
+        <button class="nav-item" id="nav-btn-tables" onclick="switchTab('tables')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span>إعدادات النظام</span>
+        </button>
+
+        <button class="nav-item" id="nav-btn-reports" onclick="switchTab('reports')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+          <span>الفواتير والتقارير</span>
+        </button>
+
+        <button class="nav-item" id="nav-btn-finance" onclick="window.open('finance.html', '_blank')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+            <polyline points="17 6 23 6 23 12"></polyline>
+          </svg>
+          <span>المالية والإحصائيات</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="time-widget">
+          <div class="time-display" id="time-display">00:00:00</div>
+          <div class="date-display" id="date-display">الخميس، 21 مايو</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="app-main">
+      
+      <!-- Daily Backup Alert Banner -->
+      <div id="daily-backup-banner" class="backup-alert-banner" style="display: none;">
+        <div class="banner-content">
+          <span class="banner-icon"></span>
+          <span class="banner-text">تنبيه النسخ الاحتياطي اليومي: لم يتم حفظ نسخة لبيانات اليوم لحمايتها من الضياع.</span>
+        </div>
+        <div class="banner-actions">
+          <button class="banner-btn-download" onclick="triggerDailyBackupDownload()">تنزيل نسخة احتياطية الآن</button>
+          <button class="banner-btn-dismiss" onclick="dismissBackupBanner()" title="إغلاق">&times;</button>
+        </div>
+      </div>
+      
+      <!-- Top Header Bar -->
+      <header class="app-header">
+        <div class="header-title-area">
+          <h2 id="current-tab-title">الصالة وإدارة الطاولات</h2>
+          <p id="current-tab-desc" class="subtitle">نظرة عامة على حالة الطاولات والطلبات النشطة في الصالة</p>
+        </div>
+        <div class="header-actions">
+          <div class="quick-stats-badge">
+            <span class="label">إجمالي المبيعات اليوم:</span>
+            <span class="value gold-text" id="today-sales-header">0 ل.س</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- VIEW 1: DASHBOARD & TABLES GRID -->
+      <section id="view-dashboard" class="tab-view active">
+        <!-- Stats Summary Bar -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon-wrapper active-tables">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">طاولات نشطة حالياً</span>
+              <h3 class="stat-value" id="stat-active-tables">0 / 0</h3>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon-wrapper revenue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <line x1="12" y1="10" x2="12" y2="10" />
+                <path d="M16 8h-6a2 2 0 0 0 0 4h4a2 2 0 0 1 0 4H8" />
+              </svg>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">المبيعات الإجمالية</span>
+              <h3 class="stat-value text-gold" id="stat-total-revenue">0 ل.س</h3>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon-wrapper completed-orders">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+            </div>
+            <div class="stat-details">
+              <span class="stat-label">الطلبات المكتملة</span>
+              <h3 class="stat-value" id="stat-completed-orders">0 فاتورة</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter Bar for Tables -->
+        <div class="filter-bar">
+          <div class="filter-group">
+            <button class="filter-btn active" id="table-filter-all" onclick="filterTables('all')">الكل</button>
+            <button class="filter-btn" id="table-filter-available" onclick="filterTables('available')">فارغة</button>
+            <button class="filter-btn" id="table-filter-occupied" onclick="filterTables('occupied')">مشغولة</button>
+            <button class="filter-btn" id="table-filter-billing" onclick="filterTables('billing')">طلب الحساب</button>
+          </div>
+          <div class="action-group">
+            <button class="btn btn-secondary" onclick="openAddTableQuickModal()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              إضافة طاولة سريعة
+            </button>
+          </div>
+        </div>
+
+        <!-- Tables Grid -->
+        <div class="tables-grid" id="tables-grid-container">
+          <!-- Will be rendered dynamically via JS -->
+          <div class="loading-placeholder">جاري تحميل بيانات الصالة...</div>
+        </div>
+      </section>
+
+      <!-- VIEW 2: MENU MANAGER (PRODUCTS & CATEGORIES) -->
+      <section id="view-menu" class="tab-view">
+        <div class="menu-manager-layout">
+          
+          <!-- Left Panel: Categories -->
+          <div class="menu-categories-panel">
+            <div class="panel-header">
+              <h3>التصنيفات</h3>
+              <button class="btn-icon-add" onclick="openAddCategoryModal()" title="إضافة تصنيف جديد">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+            </div>
+            <div class="categories-list-container" id="categories-list">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Right Panel: Products -->
+          <div class="menu-products-panel">
+            <div class="panel-header">
+              <div class="search-and-filter">
+                <h3>المنتجات والمأكولات</h3>
+                <div class="search-box-wrapper">
+                  <input type="text" id="product-search-input" placeholder="ابحث عن منتج..." oninput="filterProductsList()">
+                  <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </div>
+              </div>
+              <div class="action-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="openAddProductModal()">
+                  إضافة منتج
+                </button>
+              </div>
+            </div>
+
+            <div class="products-grid-container" id="products-list">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- VIEW 3: SYSTEM SETTINGS -->
+      <section id="view-tables" class="tab-view">
+        <div class="settings-grid-layout">
+          
+          <!-- Right: Tables Layout Configs -->
+          <div class="tables-settings-container">
+            <div class="panel-header-large">
+              <div>
+                <h3>إدارة وتخطيط طاولات الصالة</h3>
+                <p class="subtitle">قم بإضافة طاولات جديدة، تعديل أرقامها، سعة مقاعدها، أو حذفها نهائياً.</p>
+              </div>
+              <button class="btn btn-primary" onclick="openAddTableModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                إضافة طاولة جديدة
+              </button>
+            </div>
+
+            <div class="tables-list-table-wrapper">
+              <table class="premium-table">
+                <thead>
+                  <tr>
+                    <th>رقم الطاولة</th>
+                    <th>السعة (عدد المقاعد)</th>
+                    <th>الحالة الحالية</th>
+                    <th>الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="tables-settings-list">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <!-- Left: General System Configs -->
+          <div class="general-configs-container">
+            <!-- Tax Rate Card -->
+            <div class="configs-card">
+              <div class="configs-card-header">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+                <h4>إعدادات النظام العامة</h4>
+              </div>
+              <p class="configs-subtitle">قم بضبط المدخلات والنسب الحسابية العامة للضريبة والخدمة.</p>
+              
+              <div class="form-group">
+                <label for="settings-tax-rate">نسبة الخدمة والضريبة (%):</label>
+                <input type="number" id="settings-tax-rate" min="0" max="100" class="form-control" value="15">
+              </div>
+              
+              <button class="btn btn-primary btn-block" onclick="saveSystemSettings()">
+                حفظ الإعدادات العامة
+              </button>
+            </div>
+
+            <!-- Cafe Identity Settings Card -->
+            <div class="configs-card" style="margin-top: 20px;">
+              <div class="configs-card-header">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+                <h4>إعدادات هوية المطعم / المقهى</h4>
+              </div>
+              <p class="configs-subtitle">قم بتخصيص الاسم والشعار والعبارة الترحيبية على الفاتورة.</p>
+              
+              <div class="form-group">
+                <label for="settings-brand-name">اسم المطعم / المقهى:</label>
+                <input type="text" id="settings-brand-name" class="form-control" placeholder="مثال: BISTRO">
+              </div>
+              
+              <div class="form-group">
+                <label for="settings-brand-slogan">العبارة الفرعية (السلوجان):</label>
+                <input type="text" id="settings-brand-slogan" class="form-control" placeholder="مثال: eatery & Social House">
+              </div>
+              
+              <div class="form-group">
+                <label for="settings-brand-footer">تذييل الفاتورة (ملاحظة أسفل الإيصال):</label>
+                <input type="text" id="settings-brand-footer" class="form-control" placeholder="مثال: شكرًا لزيارتكم وطاب يومكم!">
+              </div>
+              
+              <div class="form-group">
+                <label>شعار المطعم / المقهى:</label>
+                <div style="display: flex; align-items: center; gap: 15px; margin-top: 5px;">
+                  <div class="logo-preview-wrapper" style="width: 60px; height: 60px; border-radius: 8px; border: 1px solid var(--border-light); overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #f8fafc;">
+                    <img id="settings-logo-preview" src="./assets/logo.png" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                  </div>
+                  <div style="flex-grow: 1;">
+                    <input type="file" id="settings-logo-input" accept="image/*" style="display: none;" onchange="previewLogoFile(event)">
+                    <button class="btn btn-secondary btn-xs" onclick="document.getElementById('settings-logo-input').click()" style="margin-bottom: 5px;">اختيار صورة الشعار</button>
+                    <p style="font-size: 11px; color: var(--text-muted); margin: 0;">يتم ضغط الصورة وحفظها تلقائياً كـ Base64.</p>
+                  </div>
+                </div>
+              </div>
+              
+              <button class="btn btn-primary btn-block" onclick="saveBrandSettings()">
+                حفظ تفاصيل الهوية
+              </button>
+            </div>
+
+            <!-- Full System Backup Management Card -->
+            <div class="configs-card" style="margin-top: 20px;">
+              <div class="configs-card-header">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <h4>إدارة النسخ الاحتياطي الكامل للنظام (JSON)</h4>
+              </div>
+              <p class="configs-subtitle">قم بتصدير نسخة احتياطية كاملة من قاعدة البيانات (.json) لحمايتها من الفقدان في حال مسح ملفات تعريف المتصفح، أو لاستعادتها لاحقاً.</p>
+              
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button class="btn btn-secondary btn-block" onclick="exportFullBackupJSON()">
+                  تصدير نسخة كاملة (.json)
+                </button>
+                <button class="btn btn-secondary btn-block" onclick="triggerFullBackupImport()">
+                  استيراد نسخة كاملة (.json)
+                </button>
+                <input type="file" id="backup-import-input" accept=".json" style="display:none;" onchange="handleFullBackupImport(event)">
+              </div>
+            </div>
+
+          </div>
+          
+        </div>
+      </section>
+
+      <!-- VIEW 4: REPORTS & SALES HISTORY -->
+      <section id="view-reports" class="tab-view">
+        <div class="reports-container">
+          
+          <!-- Reports Date Filtering Bar -->
+          <div class="reports-filter-bar">
+            <div class="filter-options">
+              <button class="filter-btn active" id="btn-rep-filter-all" onclick="setReportsFilter('all')">كل المبيعات</button>
+              <button class="filter-btn" id="btn-rep-filter-today" onclick="setReportsFilter('today')">مبيعات اليوم</button>
+              <button class="filter-btn" id="btn-rep-filter-custom" onclick="setReportsFilter('custom')">فترة مخصصة</button>
+            </div>
+            
+            <div class="custom-date-inputs" id="reports-date-inputs" style="display: none;">
+              <div class="date-input-group">
+                <label for="rep-start-date">من تاريخ:</label>
+                <input type="date" id="rep-start-date" onchange="applyCustomDateFilter()">
+              </div>
+              <div class="date-input-group">
+                <label for="rep-end-date">إلى تاريخ:</label>
+                <input type="date" id="rep-end-date" onchange="applyCustomDateFilter()">
+              </div>
+            </div>
+          </div>
+          
+          <!-- Summary Dashboard Cards -->
+          <div class="reports-summary-grid">
+            <div class="report-summary-card">
+              <span class="label">إجمالي إيرادات المبيعات</span>
+              <h2 id="rep-total-sales" class="gold-text">0 ل.س</h2>
+              <span class="sub" id="rep-total-sales-count">من إجمالي 0 عملية دفع</span>
+            </div>
+            <div class="report-summary-card">
+              <span class="label">متوسط قيمة الفاتورة</span>
+              <h2 id="rep-avg-ticket">0 ل.س</h2>
+              <span class="sub">لكل طلب مكتمل</span>
+            </div>
+            <div class="report-summary-card">
+              <span class="label">أكثر التصنيفات طلباً</span>
+              <h2 id="rep-popular-cat">-</h2>
+              <span class="sub" id="rep-popular-cat-count">الأكثر تفضيلاً للزبائن</span>
+            </div>
+          </div>
+
+          <div class="reports-tables-layout">
+            <!-- Left: Sales Log -->
+            <div class="sales-log-panel">
+              <div class="panel-header">
+                <h3>سجل الفواتير المدفوعة</h3>
+                <button class="btn btn-danger-outline btn-xs" onclick="confirmClearSalesHistory()">
+                  مسح السجل بالكامل
+                </button>
+              </div>
+              <div class="sales-list-wrapper">
+                <table class="premium-table">
+                  <thead>
+                    <tr>
+                      <th>معرف الفاتورة</th>
+                      <th>رقم الطاولة</th>
+                      <th>الوقت والتاريخ</th>
+                      <th>طريقة الدفع</th>
+                      <th>المجموع الكلي</th>
+                      <th>الخيارات</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sales-history-list">
+                    <!-- Rendered dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Right: Premium Receipt Viewer / Analysis -->
+            <div class="sales-details-panel">
+              <div class="panel-header">
+                <h3>معاينة تفاصيل الفاتورة</h3>
+              </div>
+              <div class="receipt-preview-placeholder" id="receipt-preview-container">
+                <div class="placeholder-msg">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                  </svg>
+                  <p>اختر فاتورة من سجل الفواتير على اليمين لاستعراض تفاصيلها وطباعة الإيصال.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- RIGHT SLIDE-OVER: ORDER & SERVICE PANEL -->
+    <div class="slide-over-backdrop" id="order-slideover-backdrop" onclick="closeOrderSlideOver()"></div>
+    <aside class="order-slide-over" id="order-slideover">
+      <div class="slide-header">
+        <div class="table-title-area">
+          <span class="table-badge" id="slide-table-badge">طاولة -</span>
+          <div class="table-meta-details">
+            <h3 id="slide-table-title">تفاصيل الطاولة</h3>
+            <span class="status-indicator" id="slide-table-status">متاحة</span>
+          </div>
+        </div>
+        <button class="btn-close" onclick="closeOrderSlideOver()">&times;</button>
+      </div>
+
+      <!-- Content wrapper depends on status (available vs occupied) -->
+      <div class="slide-content" id="slide-content-area">
+        
+        <!-- INITIAL STATE: TABLE IS AVAILABLE -->
+        <div id="slide-state-available" class="slide-state-panel active">
+          <div class="empty-table-visual">
+            <div class="table-circle">
+              <span id="slide-table-capacity-label">سعة: 4 مقاعد</span>
+            </div>
+            <h4>طاولة شاغرة وجاهزة للاستقبال</h4>
+            <p>يمكنك فتح الطاولة وبدء إضافة طلبات للزبائن الجالسين عليها الآن.</p>
+          </div>
+
+          <div class="table-setup-form">
+            <div class="form-group">
+              <label for="order-customer-name">اسم الزبون (اختياري)</label>
+              <input type="text" id="order-customer-name" placeholder="مثال: أحمد، العائلة..." autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label for="order-guest-count">عدد الأفراد (اختياري)</label>
+              <input type="number" id="order-guest-count" min="1" max="20" placeholder="مثال: 4">
+            </div>
+            <button class="btn btn-primary btn-block" onclick="startNewTableOrder()">
+              فتح الطاولة والبدء بالطلب
+            </button>
+          </div>
+        </div>
+
+        <!-- ACTIVE STATE: TABLE IS OCCUPIED / ORDER ACTIVE -->
+        <div id="slide-state-occupied" class="slide-state-panel">
+          <div class="occupied-order-layout">
+            
+            <!-- Left Side of Split: Active Cart -->
+            <div class="active-cart-section">
+              <div class="cart-header">
+                <h4>الطلبات الحالية</h4>
+                <span class="items-count-badge" id="cart-items-count">0 عناصر</span>
+              </div>
+              
+              <div class="cart-items-list" id="cart-items-container">
+                <!-- Rendered dynamically -->
+                <div class="cart-empty-state">
+                  لا توجد طلبات مسجلة لهذه الطاولة حتى الآن. اختر منتجات من القائمة لإضافتها.
+                </div>
+              </div>
+
+              <div class="cart-summary-calculations">
+                <div class="calc-row">
+                  <span>المجموع الفرعي:</span>
+                  <span id="calc-subtotal">0 ل.س</span>
+                </div>
+                <div class="calc-row">
+                  <span id="calc-tax-label">الخدمة والضريبة (15%):</span>
+                  <span id="calc-tax">0 ل.س</span>
+                </div>
+                <div class="calc-row total">
+                  <span>المجموع الكلي:</span>
+                  <span id="calc-total" class="gold-text">0 ل.س</span>
+                </div>
+              </div>
+
+              <div class="cart-actions-grid">
+                <button class="btn btn-secondary" onclick="markTableForBilling()">
+                  طلب الفاتورة
+                </button>
+                <button class="btn btn-primary" onclick="saveCurrentOrderState()">
+                  حفظ الطلبات
+                </button>
+              </div>
+
+              <div class="checkout-full-action">
+                <button class="btn btn-gold btn-block btn-lg" onclick="openCheckoutConfirmModal()">
+                  دفع وإنهاء الفاتورة
+                </button>
+              </div>
+            </div>
+
+            <!-- Right Side of Split: Fast Menu Selector -->
+            <div class="fast-menu-section">
+              <div class="fast-menu-header">
+                <div class="fast-menu-search">
+                  <input type="text" id="fast-menu-search-input" placeholder="ابحث بسرعة..." oninput="filterFastMenu()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </div>
+                
+                <div class="fast-categories-tab" id="fast-menu-categories-tabs">
+                  <!-- Rendered dynamically e.g. [الكل, مقبلات, رئيسي...] -->
+                </div>
+              </div>
+
+              <div class="fast-products-grid" id="fast-menu-products-container">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+  </div> <!-- End App Shell -->
+
+  <!-- ================= MODALS SECTION ================= -->
+
+  <!-- 1. CATEGORY MODAL (ADD / EDIT) -->
+  <div class="modal-backdrop" id="modal-category" onclick="closeModal('modal-category')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h4 id="category-modal-title">إضافة تصنيف جديد</h4>
+        <button class="btn-close" onclick="closeModal('modal-category')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="category-form-id">
+        <div class="form-group">
+          <label for="category-form-name">اسم التصنيف</label>
+          <input type="text" id="category-form-name" placeholder="مثال: المشويات، الشوربات، العصائر...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-category')">إلغاء</button>
+        <button class="btn btn-primary" onclick="submitCategoryForm()">حفظ التصنيف</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. PRODUCT MODAL (ADD / EDIT) -->
+  <div class="modal-backdrop" id="modal-product" onclick="closeModal('modal-product')">
+    <div class="modal-content modal-medium" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h4 id="product-modal-title">إضافة منتج جديد</h4>
+        <button class="btn-close" onclick="closeModal('modal-product')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="product-form-id">
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="product-form-name">اسم المنتج / الوجبة</label>
+            <input type="text" id="product-form-name" placeholder="مثال: ستيك دجاج مشوي">
+          </div>
+          <div class="form-group">
+            <label for="product-form-price">السعر (ل.س)</label>
+            <input type="number" id="product-form-price" min="1" step="1" placeholder="مثال: 45000">
+          </div>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="product-form-category">تصنيف المنتج</label>
+            <select id="product-form-category">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="product-form-color">لون أيقونة المنتج (للتمييز البصري)</label>
+            <div class="color-picker-grid">
+              <label class="color-radio" style="background-color: #d4af37;"><input type="radio" name="prod-color" value="#d4af37" checked></label>
+              <label class="color-radio" style="background-color: #c0392b;"><input type="radio" name="prod-color" value="#c0392b"></label>
+              <label class="color-radio" style="background-color: #2ecc71;"><input type="radio" name="prod-color" value="#2ecc71"></label>
+              <label class="color-radio" style="background-color: #3498db;"><input type="radio" name="prod-color" value="#3498db"></label>
+              <label class="color-radio" style="background-color: #e67e22;"><input type="radio" name="prod-color" value="#e67e22"></label>
+              <label class="color-radio" style="background-color: #8e44ad;"><input type="radio" name="prod-color" value="#8e44ad"></label>
+              <label class="color-radio" style="background-color: #7f8c8d;"><input type="radio" name="prod-color" value="#7f8c8d"></label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-product')">إلغاء</button>
+        <button class="btn btn-primary" onclick="submitProductForm()">حفظ المنتج</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. TABLE MODAL (ADD / EDIT) -->
+  <div class="modal-backdrop" id="modal-table" onclick="closeModal('modal-table')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h4 id="table-modal-title">إضافة طاولة جديدة</h4>
+        <button class="btn-close" onclick="closeModal('modal-table')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="table-form-id">
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="table-form-number">رقم أو اسم الطاولة</label>
+            <input type="text" id="table-form-number" placeholder="مثال: 9 أو VIP-1">
+          </div>
+          <div class="form-group">
+            <label for="table-form-capacity">السعة المقعدية (عدد الأفراد)</label>
+            <input type="number" id="table-form-capacity" min="1" max="30" placeholder="مثال: 4" value="4">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-table')">إلغاء</button>
+        <button class="btn btn-primary" onclick="submitTableForm()">حفظ الطاولة</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. CHECKOUT CONFIRMATION MODAL -->
+  <div class="modal-backdrop" id="modal-checkout" onclick="closeModal('modal-checkout')">
+    <div class="modal-content modal-medium" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h4>تأكيد دفع الفاتورة وإغلاق الطاولة</h4>
+        <button class="btn-close" onclick="closeModal('modal-checkout')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="checkout-bill-summary">
+          <div class="bill-summary-header">
+            <h4 id="chk-table-label">فاتورة طاولة -</h4>
+            <span id="chk-time-label">الوقت: -</span>
+          </div>
+          <hr class="divider">
+          <div class="checkout-items-list" id="chk-items-container">
+            <!-- Populated dynamically with simple line items -->
+          </div>
+          <hr class="divider">
+          <div class="checkout-pricing">
+            <div class="calc-row">
+              <span>المجموع الفرعي:</span>
+              <span id="chk-subtotal">0 ل.س</span>
+            </div>
+            <div class="calc-row" id="chk-discount-row" style="color: #c0392b; font-weight: bold; display: none;">
+              <span>الحسم الإضافي:</span>
+              <span id="chk-discount">-0 ل.س</span>
+            </div>
+            <div class="calc-row">
+              <span id="chk-tax-label">الخدمة والضريبة (15%):</span>
+              <span id="chk-tax">0 ل.س</span>
+            </div>
+            <div class="calc-row total text-gold">
+              <span>المجموع الكلي المستحق:</span>
+              <span id="chk-total">0 ل.س</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="discount-input-container" style="margin: 15px 0; background: rgba(25, 59, 35, 0.04); border: 1px solid rgba(25, 59, 35, 0.1); border-radius: 8px; padding: 12px;">
+          <label for="checkout-discount-input" style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #193B23;">تطبيق حسم مالي مباشر على الفاتورة (ل.س):</label>
+          <input type="number" id="checkout-discount-input" min="0" value="0" placeholder="مثال: 5000" class="form-control" style="width: 100%; padding: 10px; border: 1px solid rgba(0,0,0,0.15); border-radius: 6px; font-size: 14px;" oninput="updateCheckoutDiscount()">
+        </div>
+
+        <div class="payment-method-selector">
+          <label>اختر طريقة الدفع:</label>
+          <div class="payment-methods-grid">
+            <label class="payment-method-card">
+              <input type="radio" name="payment-method" value="نقد شاش (Cash)" checked>
+              <div class="card-box">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg>
+                <span>دفع نقدي (Cash)</span>
+              </div>
+            </label>
+            <label class="payment-method-card">
+              <input type="radio" name="payment-method" value="بطاقة شبكة (Card)">
+              <div class="card-box">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                <span>بطاقة مدى / شبكة</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-checkout')">رجوع للطلب</button>
+        <button class="btn btn-gold" id="btn-confirm-checkout" onclick="executeCheckout()">
+          إتمام الدفع وطباعة الفاتورة
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Scripts -->
+  <!-- Firebase Compat SDKs (Required for seamless Pure Frontend operation) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="database.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
