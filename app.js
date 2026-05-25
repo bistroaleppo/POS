@@ -38,7 +38,9 @@ const state = {
  * Formats pricing as Syrian Lira (ل.س) with thousands separator and rounded whole number.
  */
 function formatCurrency(amount) {
-  return Math.round(amount || 0).toLocaleString('en-US') + ' ل.س';
+  const val = Math.round(amount || 0);
+  const newLira = val.toLocaleString('en-US');
+  return `${newLira} ل.س`;
 }
 
 // ==========================================================================
@@ -64,6 +66,12 @@ async function handleLoginSubmit(e) {
   try {
     await firebase.auth().signInWithEmailAndPassword(email, password);
   } catch (err) {
+    if (err.code === 'auth/network-request-failed' || !navigator.onLine) {
+      document.getElementById('login-container').style.display = 'none';
+      document.getElementById('app-container').style.display = 'flex';
+      renderDashboard();
+      return;
+    }
     console.error('Login failed:', err);
     errorContainer.style.display = 'flex';
     document.getElementById('password-input').value = '';
@@ -187,7 +195,10 @@ async function refreshStateData(options = {}) {
   const promises = [];
 
   if (loadAll || options.tables || !state.tables || state.tables.length === 0) {
-    promises.push(state.db.getTables().then(res => state.tables = res));
+    promises.push(state.db.getTables().then(res => {
+      state.tables = res;
+      state.tables.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    }));
   }
 
   if (loadAll) {
@@ -628,13 +639,9 @@ function renderCart() {
       </div>`;
 
     document.getElementById('calc-subtotal').textContent = formatCurrency(0);
-    document.getElementById('calc-tax').textContent = formatCurrency(0);
     document.getElementById('calc-total').textContent = formatCurrency(0);
     document.getElementById('cart-items-count').textContent = '0 عناصر';
 
-    const taxRate = state.taxRate !== undefined ? state.taxRate : 15;
-    const labelTax = document.getElementById('calc-tax-label');
-    if (labelTax) labelTax.textContent = `الخدمة والضريبة (${taxRate}%):`;
     return;
   }
 
@@ -687,15 +694,10 @@ function renderCart() {
     container.appendChild(row);
   });
 
-  // Math Calculations (dynamic tax rate)
-  const taxRate = state.taxRate !== undefined ? state.taxRate : 15;
-  const tax = subtotal * (taxRate / 100);
-  const total = subtotal + tax;
+  // Math Calculations (no tax)
+  const total = subtotal;
 
   document.getElementById('calc-subtotal').textContent = formatCurrency(subtotal);
-  const labelTax = document.getElementById('calc-tax-label');
-  if (labelTax) labelTax.textContent = `الخدمة والضريبة (${taxRate}%):`;
-  document.getElementById('calc-tax').textContent = formatCurrency(tax);
   document.getElementById('calc-total').textContent = formatCurrency(total);
   document.getElementById('cart-items-count').textContent = `${itemCount} عناصر`;
 }
@@ -946,9 +948,7 @@ function openCheckoutConfirmModal() {
     discountInput.value = 0;
   }
 
-  const taxRate = state.taxRate !== undefined ? state.taxRate : 15;
-  const tax = subtotal * (taxRate / 100);
-  const grandTotal = subtotal + tax;
+  const grandTotal = subtotal;
 
   document.getElementById('chk-subtotal').textContent = formatCurrency(subtotal);
 
@@ -959,11 +959,14 @@ function openCheckoutConfirmModal() {
     document.getElementById('chk-discount').textContent = `-0 ل.س`;
   }
 
-  const labelTax = document.getElementById('chk-tax-label');
-  if (labelTax) labelTax.textContent = `الخدمة والضريبة (${taxRate}%):`;
-
-  document.getElementById('chk-tax').textContent = formatCurrency(tax);
   document.getElementById('chk-total').textContent = formatCurrency(grandTotal);
+
+  // Initialize currency UI
+  const curRadio = document.querySelector('input[name="currency-type"]:checked');
+  if(curRadio) curRadio.checked = false;
+  document.querySelector('input[name="currency-type"][value="syrian"]').checked = true;
+  document.getElementById('exchange-rate-input').value = '';
+  if (typeof toggleCurrencyRateInput === 'function') toggleCurrencyRateInput();
 
   openModal('modal-checkout');
 }
@@ -996,9 +999,7 @@ function updateCheckoutDiscount() {
   }
 
   const netSubtotal = Math.max(0, subtotal - discount);
-  const taxRate = state.taxRate !== undefined ? state.taxRate : 15;
-  const tax = netSubtotal * (taxRate / 100);
-  const grandTotal = netSubtotal + tax;
+  const grandTotal = netSubtotal;
 
   const discountRow = document.getElementById('chk-discount-row');
   if (discountRow) {
@@ -1011,8 +1012,55 @@ function updateCheckoutDiscount() {
   }
 
   document.getElementById('chk-subtotal').textContent = formatCurrency(subtotal);
-  document.getElementById('chk-tax').textContent = formatCurrency(tax);
   document.getElementById('chk-total').textContent = formatCurrency(grandTotal);
+  updateDollarTotalPreview();
+}
+
+/**
+ * Toggles exchange rate input visibility based on currency selection.
+ */
+function toggleCurrencyRateInput() {
+  const currencyType = document.querySelector('input[name="currency-type"]:checked')?.value || 'syrian';
+  const container = document.getElementById('exchange-rate-container');
+  if (container) {
+    if (currencyType === 'dollar') {
+      container.style.display = 'block';
+      updateDollarTotalPreview();
+    } else {
+      container.style.display = 'none';
+      const exchangeInput = document.getElementById('exchange-rate-input');
+      if (exchangeInput) exchangeInput.value = '';
+      updateDollarTotalPreview();
+    }
+  }
+}
+
+/**
+ * Dynamically computes and previews the total in USD based on the exchange rate.
+ */
+function updateDollarTotalPreview() {
+  const currencyType = document.querySelector('input[name="currency-type"]:checked')?.value || 'syrian';
+  const exchangeRateInput = document.getElementById('exchange-rate-input');
+  const exchangeRate = parseFloat(exchangeRateInput?.value) || 0;
+  const dollarPreview = document.getElementById('dollar-total-preview');
+  if (!dollarPreview) return;
+
+  if (currencyType === 'dollar' && exchangeRate > 0) {
+    const discountInput = document.getElementById('checkout-discount-input');
+    const discount = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
+    let subtotal = 0;
+    state.currentCart.items.forEach(item => {
+      const originalTotal = item.price * item.quantity;
+      const totalItem = item.isHospitality ? 0 : originalTotal;
+      subtotal += totalItem;
+    });
+    const netSubtotal = Math.max(0, subtotal - discount);
+    const total = netSubtotal;
+    const dollarTotal = parseFloat((total / exchangeRate).toFixed(2));
+    dollarPreview.textContent = `المبلغ المستحق بالدولار: $${dollarTotal}`;
+  } else {
+    dollarPreview.textContent = 'المبلغ المستحق بالدولار: $0.00';
+  }
 }
 
 /**
@@ -1037,12 +1085,20 @@ async function executeCheckout() {
   });
 
   const netSubtotal = Math.max(0, subtotal - discount);
-  const taxRate = state.taxRate !== undefined ? state.taxRate : 15;
-  const tax = netSubtotal * (taxRate / 100);
-  const total = netSubtotal + tax;
+  const total = netSubtotal;
 
   // Pre-generate invoice ID locally so the UI does not wait for any DB round-trip
   const invoiceId = String(Date.now());
+
+  // Check currency
+  const currencyType = document.querySelector('input[name="currency-type"]:checked')?.value || 'syrian';
+  const exchangeRateInput = document.getElementById('exchange-rate-input');
+  const exchangeRate = parseFloat(exchangeRateInput?.value) || null;
+  let dollarTotal = null;
+  
+  if (currencyType === 'dollar' && exchangeRate > 0) {
+    dollarTotal = parseFloat((total / exchangeRate).toFixed(2));
+  }
 
   const saleRecord = {
     id: invoiceId,
@@ -1053,9 +1109,10 @@ async function executeCheckout() {
     items: JSON.parse(JSON.stringify(state.currentCart.items)),
     subtotal: subtotal,
     discount: discount,
-    taxRate: taxRate,
-    tax: tax,
     total: total,
+    currencyType: currencyType,
+    exchangeRate: exchangeRate,
+    dollarTotal: dollarTotal,
     paymentMethod: pMethod,
     startTime: state.currentCart.startTime,
     endTime: Date.now()
@@ -1395,6 +1452,8 @@ async function deleteProduct(id) {
 // 5. Tables Layout Settings (CRUD)
 // ==========================================================================
 
+let draggedTableId = null;
+
 function renderTablesSettings() {
   const tbody = document.getElementById('tables-settings-list');
   if (!tbody) return;
@@ -1408,6 +1467,41 @@ function renderTablesSettings() {
 
   state.tables.forEach(tbl => {
     const tr = document.createElement('tr');
+    tr.setAttribute('draggable', 'true');
+    tr.setAttribute('data-id', tbl.id);
+    tr.style.cursor = 'grab';
+
+    tr.addEventListener('dragstart', (e) => {
+      draggedTableId = tbl.id;
+      e.dataTransfer.effectAllowed = 'move';
+      tr.style.opacity = '0.5';
+    });
+
+    tr.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      tr.style.borderTop = '2px solid #10b981';
+    });
+
+    tr.addEventListener('dragleave', (e) => {
+      tr.style.borderTop = '';
+    });
+
+    tr.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      tr.style.borderTop = '';
+      tr.style.opacity = '1';
+      const targetId = tbl.id;
+      if (draggedTableId && draggedTableId !== targetId) {
+        await handleTableReorder(draggedTableId, targetId);
+      }
+    });
+
+    tr.addEventListener('dragend', () => {
+      tr.style.opacity = '1';
+      tr.style.borderTop = '';
+      draggedTableId = null;
+    });
 
     let statusClass = 'available';
     let statusTxt = 'فارغة';
@@ -1415,10 +1509,10 @@ function renderTablesSettings() {
     if (tbl.status === 'billing') { statusClass = 'billing'; statusTxt = 'طلب الفاتورة'; }
 
     tr.innerHTML = `
-      <td><strong>طاولة ${tbl.number}</strong></td>
+      <td><strong>☰ طاولة ${tbl.number}</strong></td>
       <td>${tbl.capacity} أفراد</td>
       <td><span class="badge-status ${statusClass}">${statusTxt}</span></td>
-      <td>
+      <td style="display: flex; gap: 4px; flex-wrap: wrap;">
         <button class="btn btn-secondary btn-xs" onclick="openEditTableModal('${tbl.id}')" title="تعديل">
           تعديل
         </button>
@@ -1430,6 +1524,36 @@ function renderTablesSettings() {
 
     tbody.appendChild(tr);
   });
+}
+
+async function handleTableReorder(sourceId, targetId) {
+  // Initialize sortOrders if missing
+  state.tables.forEach((t, i) => {
+    if (t.sortOrder === undefined) t.sortOrder = i;
+  });
+
+  const sourceIndex = state.tables.findIndex(t => t.id === sourceId);
+  const targetIndex = state.tables.findIndex(t => t.id === targetId);
+
+  if (sourceIndex === -1 || targetIndex === -1) return;
+
+  const item = state.tables.splice(sourceIndex, 1)[0];
+  state.tables.splice(targetIndex, 0, item);
+
+  // Update sortOrders
+  const promises = [];
+  state.tables.forEach((t, i) => {
+    t.sortOrder = i;
+    promises.push(state.db.put('tables', t));
+  });
+
+  try {
+    await Promise.all(promises);
+    await refreshStateData({ tables: true });
+    renderTablesSettings();
+  } catch (err) {
+    console.error('Failed to reorder tables:', err);
+  }
 }
 
 function openAddTableModal() {
@@ -1894,12 +2018,23 @@ function showReceiptPreview(saleId) {
 
   const taxRate = sale.taxRate !== undefined ? sale.taxRate : 15;
 
+  let dollarHtml = '';
+  if (sale.currencyType === 'dollar' && sale.dollarTotal) {
+    dollarHtml = `
+      <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-weight: bold; color: #193B23;">
+        <span>المدفوع بالدولار ($):</span>
+        <span>$${sale.dollarTotal}</span>
+      </div>
+      <div style="font-size: 11px; text-align: right; color: #555; margin-bottom: 6px;">سعر الصرف: ${sale.exchangeRate} ل.س</div>
+    `;
+  }
+
   container.innerHTML = `
     <div style="width: 100%; display:flex; flex-direction:column; align-items:center;">
       <div class="restaurant-receipt" id="printable-receipt-element" style="background: #fff; color: #000; padding: 20px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); width: 100%; max-width: 320px; box-sizing: border-box; font-family: 'Cairo', sans-serif; direction: rtl;">
         <div class="receipt-header" style="text-align: center; margin-bottom: 15px;">
-          <h2 style="font-size: 24px; font-weight: 800; margin: 0; color: #000; letter-spacing: 1px;">${state.restaurantName || 'Restaurant'}</h2>
-          <p style="font-size: 12px; font-style: italic; margin: 2px 0 0 0; color: #555;">${state.restaurantSlogan || 'eatery & Social House'}</p>
+          <h2 style="font-size: 24px; font-weight: 800; margin: 0; color: #000; letter-spacing: 1px;">${state.restaurantName !== undefined && state.restaurantName !== null ? state.restaurantName : 'Restaurant'}</h2>
+          <p style="font-size: 12px; font-style: italic; margin: 2px 0 0 0; color: #555;">${state.restaurantSlogan !== undefined && state.restaurantSlogan !== null ? state.restaurantSlogan : 'eatery & Social House'}</p>
         </div>
         
         <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
@@ -1948,20 +2083,20 @@ function showReceiptPreview(saleId) {
             <span>${formatCurrency(sale.subtotal)}</span>
           </div>
           ${discountHtml}
-          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-            <span>الضريبة والخدمة (${taxRate}%):</span>
-            <span>${formatCurrency(sale.tax)}</span>
-          </div>
           <div class="row grand-total" style="display: flex; justify-content: space-between; font-weight: 800; font-size: 15px; border-top: 1px dashed #000; padding-top: 8px; margin-top: 8px;">
             <span>المجموع النهائي:</span>
             <span>${formatCurrency(sale.total)}</span>
           </div>
+          <div style="font-size: 11px; text-align: center; color: #555; margin-top: 4px;">
+            (السعر بالليرة القديمة: ${Math.round(sale.total * 100).toLocaleString('en-US')} ل.س)
+          </div>
+          ${dollarHtml}
         </div>
         
         <div style="border-top: 1px dashed #000; margin: 15px 0 10px 0;"></div>
         
         <div class="receipt-footer" style="text-align: center; margin-top: 10px; font-size: 12px;">
-          <p style="font-size: 10px; color: #666; margin: 4px 0 0 0;">${state.restaurantFooter || 'Restaurant POS System By Salem Makoukji'}</p>
+          <p style="font-size: 10px; color: #666; margin: 4px 0 0 0;">${state.restaurantFooter !== undefined && state.restaurantFooter !== null ? state.restaurantFooter : 'Restaurant POS System By Salem Makoukji'}</p>
         </div>
       </div>
       
@@ -2039,7 +2174,16 @@ function printReceiptSlipDirectly(sale, invoiceId) {
     `;
   }
 
-  const taxRate = sale.taxRate !== undefined ? sale.taxRate : 15;
+  let dollarHtml = '';
+  if (sale.currencyType === 'dollar' && sale.dollarTotal) {
+    dollarHtml = `
+      <div class="row" style="color: #000; font-weight: bold; margin-top: 2mm;">
+        <span>المدفوع بالدولار ($):</span>
+        <span>$${sale.dollarTotal}</span>
+      </div>
+      <div style="font-size: 10px; text-align: right; color: #555;">سعر الصرف: ${sale.exchangeRate} ل.س</div>
+    `;
+  }
 
   const iframe = document.createElement('iframe');
   iframe.style.position = 'fixed';
@@ -2153,8 +2297,8 @@ function printReceiptSlipDirectly(sale, invoiceId) {
       <body>
         <div class="restaurant-receipt">
           <div class="receipt-header">
-            <h2>${state.restaurantName || 'Restaurant'}</h2>
-            <p>${state.restaurantSlogan || 'eatery & Social House'}</p>
+            <h2>${state.restaurantName !== undefined && state.restaurantName !== null ? state.restaurantName : 'Restaurant'}</h2>
+            <p>${state.restaurantSlogan !== undefined && state.restaurantSlogan !== null ? state.restaurantSlogan : 'eatery & Social House'}</p>
           </div>
           
           <div class="receipt-divider"></div>
@@ -2203,20 +2347,20 @@ function printReceiptSlipDirectly(sale, invoiceId) {
               <span>${formatCurrency(sale.subtotal)}</span>
             </div>
             ${discountHtml}
-            <div class="row">
-              <span>الضريبة والخدمة (${taxRate}%):</span>
-              <span>${formatCurrency(sale.tax)}</span>
-            </div>
             <div class="row grand-total">
               <span>المجموع النهائي:</span>
               <span>${formatCurrency(sale.total)}</span>
             </div>
+            <div style="font-size: 10px; text-align: center; color: #555; margin-top: 2mm;">
+              (السعر بالليرة القديمة: ${Math.round(sale.total * 100).toLocaleString('en-US')} ل.س)
+            </div>
+            ${dollarHtml}
           </div>
           
           <div class="receipt-divider"></div>
           
           <div class="receipt-footer">
-            <p style="font-size: 9px; color: #555; margin-top: 4px;">${state.restaurantFooter || 'Restaurant POS System By Salem Makoukji'}</p>
+            <p style="font-size: 9px; color: #555; margin-top: 4px;">${state.restaurantFooter !== undefined && state.restaurantFooter !== null ? state.restaurantFooter : 'Restaurant POS System By Salem Makoukji'}</p>
           </div>
         </div>
       </body>

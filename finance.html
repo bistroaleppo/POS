@@ -18,30 +18,40 @@
        Sleek Light Theme, White & Silver base, Forest Green Brand Accent (#193B23).
        ========================================================================== */
     :root {
-      --bg-primary: #f0f2f5;       /* Base silver-gray background */
-      --bg-secondary: #ffffff;     /* Pure White for sidebars and panels */
-      --bg-card: #ffffff;          /* Pure White for cards */
-      --bg-card-hover: #f8fafc;    /* Soft silver/blue hover states */
-      
-      --accent-green: #193B23;     /* Forest Green primary brand accent */
-      --accent-green-hover: #112818; /* Darker green for hover */
+      --bg-primary: #f0f2f5;
+      /* Base silver-gray background */
+      --bg-secondary: #ffffff;
+      /* Pure White for sidebars and panels */
+      --bg-card: #ffffff;
+      /* Pure White for cards */
+      --bg-card-hover: #f8fafc;
+      /* Soft silver/blue hover states */
+
+      --accent-green: #193B23;
+      /* Forest Green primary brand accent */
+      --accent-green-hover: #112818;
+      /* Darker green for hover */
       --accent-green-glow: rgba(25, 59, 35, 0.08);
-      
-      --gold-color: #d4af37;       /* Gold color for totals and high-priority metrics */
+
+      --gold-color: #d4af37;
+      /* Gold color for totals and high-priority metrics */
       --gold-glow: rgba(212, 175, 55, 0.1);
-      
-      --text-light: #1e293b;       /* Deep Charcoal for sharp readability */
-      --text-muted: #64748b;       /* Muted Slate Gray for sub-labels */
-      
-      --border-color: #e2e8f0;     /* Light silver borders */
+
+      --text-light: #1e293b;
+      /* Deep Charcoal for sharp readability */
+      --text-muted: #64748b;
+      /* Muted Slate Gray for sub-labels */
+
+      --border-color: #e2e8f0;
+      /* Light silver borders */
       --border-focus: rgba(25, 59, 35, 0.25);
-      
+
       --radius-sm: 8px;
       --radius-md: 12px;
       --radius-lg: 18px;
       --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      --shadow-glow: 0 4px 12px rgba(0,0,0,0.03), 0 1px 3px rgba(0,0,0,0.02);
-      
+      --shadow-glow: 0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
+
       --font-family: 'Cairo', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
@@ -217,14 +227,38 @@
 
     /* Shake Animation */
     @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
-      20%, 40%, 60%, 80% { transform: translateX(6px); }
+
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+
+      10%,
+      30%,
+      50%,
+      70%,
+      90% {
+        transform: translateX(-6px);
+      }
+
+      20%,
+      40%,
+      60%,
+      80% {
+        transform: translateX(6px);
+      }
     }
 
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(15px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(15px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* ==========================================================================
@@ -299,9 +333,20 @@
     }
 
     @keyframes pulse {
-      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+      0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      }
+
+      70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+      }
+
+      100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+      }
     }
 
     .header-actions {
@@ -831,8 +876,15 @@
     }
 
     @keyframes slideUp {
-      from { transform: translateY(30px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
+      from {
+        transform: translateY(30px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
     }
 
     .modal-close-btn {
@@ -1030,93 +1082,94 @@
         text-align: center;
         gap: 10px;
       }
-      
+
       .header-brand {
         flex-direction: column;
         gap: 8px;
       }
-      
+
       .header-brand-info h2 {
         font-size: 16px;
       }
-      
+
       .header-actions {
         width: 100%;
         justify-content: center;
         gap: 8px;
       }
-      
+
       .header-actions .btn {
         flex: 1;
         padding: 8px 12px;
         font-size: 12px;
       }
-      
+
       .dashboard-content {
         padding: 15px 15px;
         gap: 15px;
       }
-      
+
       .filter-panel {
         padding: 15px;
         flex-direction: column;
         align-items: stretch;
         gap: 15px;
       }
-      
+
       .filter-left {
         justify-content: center;
         gap: 8px;
       }
-      
+
       .filter-btn {
         padding: 6px 12px;
         font-size: 12px;
         flex-grow: 1;
         text-align: center;
       }
-      
+
       .custom-range-wrapper {
         width: 100%;
         justify-content: space-between;
       }
-      
+
       .filter-right {
         flex-direction: column;
         align-items: stretch;
       }
-      
+
       .select-dropdown {
         width: 100%;
       }
-      
+
       .kpi-grid {
         grid-template-columns: 1fr;
         gap: 12px;
       }
-      
+
       .kpi-card {
         padding: 16px;
       }
-      
+
       .kpi-value {
         font-size: 18px;
       }
-      
-      .chart-card, .table-card {
+
+      .chart-card,
+      .table-card {
         padding: 15px;
       }
-      
+
       .chart-container {
         height: 220px;
       }
-      
+
       .table-card-header {
         flex-direction: column;
         align-items: stretch;
         gap: 10px;
       }
-      
+
       .search-box {
         width: 100%;
       }
@@ -1126,21 +1179,26 @@
       .login-card {
         padding: 24px 16px !important;
       }
+
       .login-header h1 {
         font-size: 20px !important;
       }
+
       .login-header p {
         font-size: 13px !important;
         margin-bottom: 20px !important;
       }
+
       .form-control {
         padding: 12px 14px !important;
         font-size: 13px !important;
       }
+
       .btn-login {
         padding: 12px !important;
         font-size: 14px !important;
       }
+
       .custom-range-wrapper {
         flex-direction: column !important;
         align-items: stretch !important;
@@ -1148,9 +1206,11 @@
         padding: 8px 10px !important;
         width: 100% !important;
       }
+
       .custom-range-wrapper label {
         text-align: right !important;
       }
+
       .date-input {
         width: 100% !important;
         border-bottom: 1px solid var(--border-color) !important;
@@ -1488,9 +1548,9 @@
        Scripts & Database Controllers
        ========================================================================== -->
   <!-- Firebase Compat Core SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="./assets/js/firebase-app-compat.js"></script>
+  <script src="./assets/js/firebase-auth-compat.js"></script>
+  <script src="./assets/js/firebase-firestore-compat.js"></script>
   <!-- Main Database Driver -->
   <script src="database.js"></script>
   <!-- Chart.js Engine CDN -->
@@ -1506,6 +1566,7 @@
     let salesData = [];
     let categoriesData = [];
     let productsData = [];
+    let settingsData = [];
 
     // Filter State
     let activeRange = 'today'; // today, yesterday, 7days, 30days, all, custom
@@ -1558,6 +1619,10 @@
       try {
         await firebase.auth().signInWithEmailAndPassword(email, password);
       } catch (err) {
+        if (err.code === 'auth/network-request-failed' || !navigator.onLine) {
+          showDashboard();
+          return;
+        }
         console.error('Login failed:', err);
         errorContainer.style.display = 'flex';
         document.getElementById('password-input').value = '';
@@ -1607,15 +1672,17 @@
 
       try {
         // Parallel fetching
-        const [sales, categories, products] = await Promise.all([
+        const [sales, categories, products, settings] = await Promise.all([
           dbInstance.getSalesHistory(),
           dbInstance.getAll('categories'),
-          dbInstance.getAll('products')
+          dbInstance.getAll('products'),
+          dbInstance.getAll('settings', true).catch(() => [])
         ]);
 
         salesData = sales || [];
         categoriesData = categories || [];
         productsData = products || [];
+        settingsData = settings || [];
 
         // Sort sales by timestamp descending
         salesData.sort((a, b) => (b.timestamp || b.endTime) - (a.timestamp || a.endTime));
@@ -1787,7 +1854,9 @@
     }
 
     function formatCurrency(val) {
-      return Math.round(val || 0).toLocaleString('ar-SA') + ' ل.س';
+      const rounded = Math.round(val || 0);
+      const newLira = rounded.toLocaleString('ar-SA');
+      return `${newLira} ل.س`;
     }
 
     // ==========================================================================
@@ -2184,8 +2253,9 @@
           <td style="text-align: center;">${paymentBadge}</td>
           <td style="text-align: left; font-family: 'Inter', sans-serif;">${(sale.discount || 0).toLocaleString('ar-SA')} ل.س</td>
           <td style="text-align: left; font-weight: bold; font-family: 'Inter', sans-serif; color: var(--gold-color);">${(sale.total || 0).toLocaleString('ar-SA')} ل.س</td>
-          <td style="text-align: center;">
+          <td style="text-align: center; display: flex; justify-content: center; gap: 8px; align-items: center; min-height: 50px;">
             <button class="btn-view-receipt" onclick="viewReceiptSlip('${sale.id}')">عرض</button>
+            <button class="btn-view-receipt" style="background: #ef4444; color: white;" onclick="deleteInvoice('${sale.id}')">حذف</button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -2198,6 +2268,15 @@
     function viewReceiptSlip(saleId) {
       const sale = salesData.find(s => String(s.id) === String(saleId));
       if (!sale) return;
+
+      const brandNameSetting = settingsData.find(s => s.id === 'restaurant_name');
+      const finalName = brandNameSetting && brandNameSetting.value !== undefined && brandNameSetting.value !== null ? brandNameSetting.value : 'Restaurant';
+
+      const brandSloganSetting = settingsData.find(s => s.id === 'restaurant_slogan');
+      const finalSlogan = brandSloganSetting && brandSloganSetting.value !== undefined && brandSloganSetting.value !== null ? brandSloganSetting.value : 'eatery & Social House';
+
+      const brandFooterSetting = settingsData.find(s => s.id === 'restaurant_footer');
+      const finalFooter = brandFooterSetting && brandFooterSetting.value !== undefined && brandFooterSetting.value !== null ? brandFooterSetting.value : 'شكراً لزيارتكم! نأمل رؤيتكم قريباً';
 
       const formattedInvoiceId = 'Bis-' + String(sale.id).padStart(6, '0');
       const formattedDate = new Date(sale.timestamp || sale.endTime || Date.now()).toLocaleString('ar-SA');
@@ -2246,10 +2325,22 @@
         `;
       }
 
+      let dollarHtml = '';
+      if (sale.currencyType === 'dollar' && sale.dollarTotal) {
+        dollarHtml = `
+          <div class="row grand-total" style="display: flex; justify-content: space-between; font-weight: 800; font-size: 15px; border-top: 1px dashed #000; padding-top: 8px; margin-top: 8px; color: #10b981;">
+            <span>المدفوع بالدولار ($):</span>
+            <span>$${sale.dollarTotal}</span>
+          </div>
+          <div style="font-size: 11px; text-align: right; color: #555;">سعر الصرف: ${sale.exchangeRate} ل.س</div>
+        `;
+      }
+
       const renderArea = document.getElementById('receipt-modal-render-area');
       renderArea.innerHTML = `
         <div class="receipt-header">
-          <h2>Restaurant</h2>
+          <h2>${finalName}</h2>
+          <p>${finalSlogan}</p>
         </div>
         
         <div class="receipt-divider"></div>
@@ -2295,23 +2386,23 @@
         <div class="receipt-totals">
           <div class="row">
             <span>المجموع الفرعي:</span>
-            <span>${(sale.subtotal || 0).toLocaleString('ar-SA')} ل.س</span>
+            <span> ${(sale.subtotal || 0).toLocaleString('ar-SA')} ل.س</span>
           </div>
           ${discountHtml}
-          <div class="row">
-            <span>الضريبة والخدمة (${sale.taxRate || 15}%):</span>
-            <span>${(sale.tax || 0).toLocaleString('ar-SA')} ل.س</span>
-          </div>
           <div class="row grand-total">
             <span>المجموع النهائي:</span>
-            <span>${(sale.total || 0).toLocaleString('ar-SA')} ل.س</span>
+            <span> ${(sale.total || 0).toLocaleString('ar-SA')} ل.س</span>
           </div>
+          <div style="font-size: 10px; text-align: center; color: #555; margin-top: 2mm;">
+            (السعر بالليرة القديمة: ${Math.round((sale.total || 0) * 100).toLocaleString('ar-SA')} ل.س)
+          </div>
+          ${dollarHtml}
         </div>
         
         <div class="receipt-divider"></div>
         
         <div class="receipt-footer">
-          <p>شكراً لزيارتكم! نأمل رؤيتكم قريباً</p>
+          <p>${finalFooter}</p>
         </div>
       `;
 
@@ -2325,6 +2416,18 @@
     function closeReceiptModal(e) {
       if (e.target.id === 'modal-receipt-overlay') {
         hideReceiptModal();
+      }
+    }
+
+    async function deleteInvoice(saleId) {
+      if (confirm('هل أنت متأكد من حذف هذه الفاتورة نهائياً؟ لا يمكن التراجع عن هذا الإجراء!')) {
+        try {
+          await dbInstance.delete('sales_history', saleId);
+          await refreshDashboardData();
+        } catch (err) {
+          console.error('Failed to delete invoice:', err);
+          alert('حدث خطأ أثناء حذف الفاتورة.');
+        }
       }
     }
 
@@ -2367,9 +2470,8 @@
       });
 
       // Construct CSV data block
-      // RTL compatibility uses UTF-8 BOM so Excel opens Arabic text correctly!
       let csvContent = "\uFEFF";
-      csvContent += "رقم الفاتورة,التاريخ والوقت,رقم الطاولة,اسم الزبون,طريقة الدفع,المجموع الفرعي,الحسم,الضريبة والخدمة,المجموع النهائي\n";
+      csvContent += "رقم الفاتورة,التاريخ والوقت,رقم الطاولة,اسم الزبون,طريقة الدفع,المجموع الفرعي,الحسم,المجموع النهائي,المدفوع بالدولار\n";
 
       filtered.forEach(sale => {
         const idStr = 'Bis-' + String(sale.id).padStart(6, '0');
@@ -2381,7 +2483,9 @@
         const isCard = rawMethod.includes('card') || rawMethod.includes('credit') || rawMethod.includes('bank') || rawMethod.includes('بنك') || rawMethod.includes('بطاقة') || rawMethod.includes('شبكة') || rawMethod.includes('مدى');
         const payment = isCard ? "شبكة" : "كاش";
 
-        csvContent += `"${idStr}","${dateStr}","${table}","${custName}","${payment}",${sale.subtotal || 0},${sale.discount || 0},${sale.tax || 0},${sale.total || 0}\n`;
+        const dollarAmt = (sale.currencyType === 'dollar' && sale.dollarTotal) ? sale.dollarTotal : 0;
+
+        csvContent += `"${idStr}","${dateStr}","${table}","${custName}","${payment}",${sale.subtotal || 0},${sale.discount || 0},${sale.total || 0},${dollarAmt}\n`;
       });
 
       // Create download trigger

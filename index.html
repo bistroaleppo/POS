@@ -317,27 +317,6 @@
           <!-- Left: General System Configs -->
           <div class="general-configs-container">
             <!-- Tax Rate Card -->
-            <div class="configs-card">
-              <div class="configs-card-header">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="3" />
-                  <path
-                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-                <h4>إعدادات النظام العامة</h4>
-              </div>
-              <p class="configs-subtitle">قم بضبط المدخلات والنسب الحسابية العامة للضريبة والخدمة.</p>
-
-              <div class="form-group">
-                <label for="settings-tax-rate">نسبة الخدمة والضريبة (%):</label>
-                <input type="number" id="settings-tax-rate" min="0" max="100" class="form-control" value="15">
-              </div>
-
-              <button class="btn btn-primary btn-block" onclick="saveSystemSettings()">
-                حفظ الإعدادات العامة
-              </button>
-            </div>
-
             <!-- Cafe Identity Settings Card -->
             <div class="configs-card" style="margin-top: 20px;">
               <div class="configs-card-header">
@@ -467,9 +446,6 @@
             <div class="sales-log-panel">
               <div class="panel-header">
                 <h3>سجل الفواتير المدفوعة</h3>
-                <button class="btn btn-danger-outline btn-xs" onclick="confirmClearSalesHistory()">
-                  مسح السجل بالكامل
-                </button>
               </div>
               <div class="sales-list-wrapper">
                 <table class="premium-table">
@@ -699,10 +675,6 @@
                   <span>المجموع الفرعي:</span>
                   <span id="calc-subtotal">0 ل.س</span>
                 </div>
-                <div class="calc-row">
-                  <span id="calc-tax-label">الخدمة والضريبة (15%):</span>
-                  <span id="calc-tax">0 ل.س</span>
-                </div>
                 <div class="calc-row total">
                   <span>المجموع الكلي:</span>
                   <span id="calc-total" class="gold-text">0 ل.س</span>
@@ -886,10 +858,6 @@
               <span>الحسم الإضافي:</span>
               <span id="chk-discount">-0 ل.س</span>
             </div>
-            <div class="calc-row">
-              <span id="chk-tax-label">الخدمة والضريبة (15%):</span>
-              <span id="chk-tax">0 ل.س</span>
-            </div>
             <div class="calc-row total text-gold">
               <span>المجموع الكلي المستحق:</span>
               <span id="chk-total">0 ل.س</span>
@@ -933,6 +901,30 @@
             </label>
           </div>
         </div>
+
+        <div class="currency-selector" style="margin-top: 15px;">
+          <label>عملة الدفع:</label>
+          <div class="payment-methods-grid" style="margin-bottom: 10px;">
+            <label class="payment-method-card">
+              <input type="radio" name="currency-type" value="syrian" checked onchange="toggleCurrencyRateInput()">
+              <div class="card-box">
+                <span style="font-weight:bold;">ليرة سورية (ل.س)</span>
+              </div>
+            </label>
+            <label class="payment-method-card">
+              <input type="radio" name="currency-type" value="dollar" onchange="toggleCurrencyRateInput()">
+              <div class="card-box">
+                <span style="font-weight:bold;">دولار أمريكي ($)</span>
+              </div>
+            </label>
+          </div>
+          <div id="exchange-rate-container" style="display: none; background: rgba(0,0,0,0.03); padding: 12px; border-radius: 8px;">
+            <label for="exchange-rate-input" style="font-size: 13px; font-weight: bold; color: #193B23;">سعر الصرف الحالي (ل.س للدولار الواحد):</label>
+            <input type="number" id="exchange-rate-input" placeholder="مثال: 15000" class="form-control" style="width: 100%; margin-top: 5px; padding: 10px; border: 1px solid rgba(0,0,0,0.15); border-radius: 6px;" oninput="updateCheckoutDiscount()">
+            <div id="dollar-total-preview" style="margin-top: 10px; font-weight: bold; color: #10b981; font-size: 16px;">المبلغ المستحق بالدولار: $0.00</div>
+          </div>
+        </div>
+
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('modal-checkout')">رجوع للطلب</button>
