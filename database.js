@@ -228,6 +228,8 @@ class BistroDatabase {
           record.id = 'prod-' + Date.now();
         } else if (storeName === 'tables' && !record.id) {
           record.id = 'table-' + Date.now();
+        } else if (storeName === 'printers' && !record.id) {
+          record.id = 'printer-' + Date.now();
         } else if (storeName === 'sales_history' && !record.id) {
           record.id = String(Date.now());
         }
@@ -400,6 +402,22 @@ class BistroDatabase {
 
   async deleteReservation(id) {
     return this.delete('reservations', id);
+  }
+
+  // 7. Printers CRUD
+  async getPrinters() {
+    return this.getAll('printers');
+  }
+
+  async savePrinter(printer) {
+    if (!printer.id) {
+      printer.id = 'printer-' + Date.now();
+    }
+    return this.put('printers', printer);
+  }
+
+  async deletePrinter(id) {
+    return this.delete('printers', id);
   }
 }
 

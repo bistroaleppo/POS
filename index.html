@@ -367,6 +367,53 @@
               </button>
             </div>
 
+            <!-- Printers Management Card -->
+            <div class="configs-card" style="margin-top: 20px;">
+              <div class="configs-card-header">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="6 9 6 2 18 2 18 9" />
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                  <rect x="6" y="14" width="12" height="8" />
+                </svg>
+                <h4>إدارة الطابعات (المطبخ والرئيسية)</h4>
+              </div>
+              <p class="configs-subtitle">طابعات المطبخ والبار تطبع تذاكر الأوردر تلقائياً عند إضافة أصناف جديدة للطاولة،
+                والطابعة الرئيسية تطبع إيصال الفاتورة عند الدفع. طرق الربط: <b>شبكة IP</b> (تلقائي 100% عبر سيرفر
+                وسيط)، <b>USB مباشر</b> (Chrome/Edge على HTTPS)، أو <b>نافذة الطباعة</b>.</p>
+
+              <div id="print-bridge-settings-box" class="form-group" style="margin-top: 12px; padding: 12px; border: 1px solid var(--border-light); border-radius: 8px; background: rgba(0,0,0,0.02);">
+                <label for="settings-print-bridge-url">عنوان سيرفر الطباعة الوسيط (للطباعة عبر الشبكة):</label>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
+                  <input type="text" id="settings-print-bridge-url" class="form-control"
+                    placeholder="http://192.168.1.50:6333" dir="ltr"
+                    style="flex: 1; min-width: 200px; text-align: left;">
+                  <button class="btn btn-secondary btn-xs" onclick="savePrintBridgeUrl()">حفظ</button>
+                  <button class="btn btn-secondary btn-xs" onclick="testPrintBridge()">فحص الاتصال</button>
+                </div>
+                <p style="font-size: 11px; color: var(--text-muted); margin: 6px 0 0;">شغّل السيرفر على جهاز الكاشير
+                  بالأمر: <code style="direction: ltr; unicode-bidi: embed; display: inline-block;">node print-server.js</code>،
+                  ثم ضع عنوانه هنا. للطباعة عبر الشبكة اختر "شبكة IP" عند إضافة الطابعة وأدخل عنوانها على الشبكة.</p>
+              </div>
+              <div id="print-bridge-electron-note" style="display: none; margin-top: 12px; padding: 10px 12px; border: 1px solid rgba(25,59,35,0.3); background: rgba(25,59,35,0.06); border-radius: 8px; font-size: 12px; color: #193B23;">
+                <b>نسخة التطبيق (exe):</b> الطباعة عبر الشبكة تتم مباشرة من التطبيق بدون سيرفر وسيط. أضف الطابعات بنوع
+                اتصال "شبكة IP" مع عنوانها، أو "ويندوز (صامتة)" لأي طابعة مثبتة في النظام.
+              </div>
+
+              <div id="file-protocol-notice" style="display: none; margin-top: 12px; padding: 10px 12px; border: 1px solid rgba(212,175,55,0.4); background: rgba(212,175,55,0.08); border-radius: 8px; font-size: 12px; color: #7a5c00;">
+                <b>تنبيه:</b> أنت تشغّل النظام من ملف مباشر (file://). وضع عدم الاتصال (Offline) والربط المباشر USB
+                يتطلبان تشغيل النظام عبر خادم — استخدم <code dir="ltr">http://localhost</code> أو خدمة استضافة HTTPS.
+              </div>
+
+              <div style="display: flex; gap: 10px; margin: 12px 0; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="openAddPrinterModal()">إضافة طابعة جديدة</button>
+                <button class="btn btn-secondary" onclick="pairUsbPrinter()">ربط طابعة USB</button>
+              </div>
+
+              <div id="printers-list">
+                <!-- Rendered dynamically via JS -->
+              </div>
+            </div>
+
             <!-- Full System Backup Management Card -->
             <div class="configs-card" style="margin-top: 20px;">
               <div class="configs-card-header">
@@ -690,6 +737,29 @@
                 </button>
               </div>
 
+              <div style="margin-top: 8px;">
+                <button class="btn btn-secondary btn-block btn-sm" onclick="printKitchenTicketsManual()"
+                  style="font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="6 9 6 2 18 2 18 9" />
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                    <rect x="6" y="14" width="12" height="8" />
+                  </svg>
+                  طباعة تذاكر المطبخ والبار (غير المطبوعة)
+                </button>
+              </div>
+
+              <div class="table-service-actions" style="display: flex; gap: 8px; margin-top: 8px;">
+                <button class="btn btn-secondary btn-sm" style="flex: 1; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="openMoveTableModal()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9"/><polyline points="9 14 12 17 18 11"/><path d="M12 3v8l4-2"/></svg>
+                  نقل الطاولة
+                </button>
+                <button class="btn btn-danger-outline btn-sm" style="flex: 1; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="cancelTableOrder()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                  إلغاء الطاولة
+                </button>
+              </div>
+
               <div class="checkout-full-action">
                 <button class="btn btn-gold btn-block btn-lg" onclick="openCheckoutConfirmModal()">
                   دفع وإنهاء الفاتورة
@@ -745,6 +815,28 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('modal-category')">إلغاء</button>
         <button class="btn btn-primary" onclick="submitCategoryForm()">حفظ التصنيف</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOVE TABLE MODAL -->
+  <div class="modal-backdrop" id="modal-move-table" onclick="closeModal('modal-move-table')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h4 id="move-table-label">نقل الطلب إلى طاولة</h4>
+        <button class="btn-close" onclick="closeModal('modal-move-table')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="move-table-select">اختر الطاولة الوجهة (يجب أن تكون فارغة):</label>
+          <select id="move-table-select" class="form-control">
+            <option value="">جاري تحميل الطاولات...</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-move-table')">إلغاء</button>
+        <button class="btn btn-primary" onclick="moveTableOrder()">نقل الطلب</button>
       </div>
     </div>
   </div>
@@ -994,6 +1086,146 @@
   </div>
 
 
+  <!-- 6. PRINTER MODAL (ADD / EDIT) -->
+  <div class="modal-backdrop" id="modal-printer" onclick="closeModal('modal-printer')">
+    <div class="modal-content modal-medium" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h4 id="printer-modal-title">إضافة طابعة جديدة</h4>
+        <button class="btn-close" onclick="closeModal('modal-printer')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="printer-form-id">
+        <input type="hidden" id="printer-form-usb-json">
+
+        <div class="form-group">
+          <label for="printer-form-name">اسم الطابعة</label>
+          <input type="text" id="printer-form-name" placeholder="مثال: مطبخ رئيسي، كاشير، مشروبات...">
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>نوع الطابعة</label>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <label class="payment-method-card" style="flex: 1;">
+                <input type="radio" name="printer-type" value="kitchen" checked onchange="updatePrinterTypeUI()">
+                <div class="card-box"><span style="font-weight: bold; font-size: 12px;">مطبخ (تذاكر)</span></div>
+              </label>
+              <label class="payment-method-card" style="flex: 1;">
+                <input type="radio" name="printer-type" value="bar" onchange="updatePrinterTypeUI()">
+                <div class="card-box"><span style="font-weight: bold; font-size: 12px;">بار (تذاكر)</span></div>
+              </label>
+              <label class="payment-method-card" style="flex: 1;">
+                <input type="radio" name="printer-type" value="main" onchange="updatePrinterTypeUI()">
+                <div class="card-box"><span style="font-weight: bold; font-size: 12px;">رئيسية (إيصال)</span></div>
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>طريقة الطباعة</label>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <label class="payment-method-card" style="flex: 1;">
+                <input type="radio" name="printer-connection" value="dialog" checked onchange="updatePrinterTypeUI()">
+                <div class="card-box"><span style="font-weight: bold; font-size: 12px;">نافذة الطباعة</span></div>
+              </label>
+              <label class="payment-method-card" style="flex: 1;">
+                <input type="radio" name="printer-connection" value="usb" onchange="updatePrinterTypeUI()">
+                <div class="card-box"><span style="font-weight: bold; font-size: 12px;">USB مباشر</span></div>
+              </label>
+              <label class="payment-method-card" style="flex: 1;">
+                <input type="radio" name="printer-connection" value="network" onchange="updatePrinterTypeUI()">
+                <div class="card-box"><span style="font-weight: bold; font-size: 12px;">شبكة IP</span></div>
+              </label>
+              <label class="payment-method-card" style="flex: 1;">
+                <input type="radio" name="printer-connection" value="windows" onchange="updatePrinterTypeUI()">
+                <div class="card-box"><span style="font-weight: bold; font-size: 12px;">ويندوز (صامتة)</span></div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div id="printer-network-fields" style="display: none;">
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="printer-form-ip">عنوان IP للطابعة</label>
+              <input type="text" id="printer-form-ip" placeholder="192.168.1.50" dir="ltr" style="text-align: left;">
+            </div>
+            <div class="form-group">
+              <label for="printer-form-port">المنفذ</label>
+              <input type="number" id="printer-form-port" value="9100" min="1" max="65535">
+            </div>
+          </div>
+          <p style="font-size: 11px; color: var(--text-muted); margin-top: 0;">تُرسل أوامر ESC/POS إلى الطابعة عبر سيرفر
+            الطباعة الوسيط (يُضبط عنوانه من إعدادات النظام). المنفذ الافتراضي للطابعات الحرارية هو 9100.</p>
+        </div>
+
+        <div id="printer-usb-device-box" style="display: none; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;">
+          <div style="font-size: 13px; font-weight: 600; color: #193B23;" id="printer-usb-device-name">لا يوجد جهاز مقترن</div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">اضغط "ربط طابعة USB" من شاشة الإعدادات
+            قبل اختيار طريقة USB ليقترن الجهاز تلقائياً.</div>
+        </div>
+
+        <div id="printer-windows-fields" style="display: none;">
+          <div class="form-group">
+            <label for="printer-form-windows-device">اختر الطابعة المثبتة في Windows:</label>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <select id="printer-form-windows-device" class="form-control"
+                style="flex: 1; min-width: 180px;"></select>
+              <button class="btn btn-secondary btn-xs" onclick="populateWindowsPrinters(document.getElementById('printer-form-windows-device').value)">تحديث</button>
+            </div>
+            <p id="printer-windows-note" style="font-size: 11px; color: var(--text-muted); margin: 6px 0 0;">خيار
+              "ويندوز (صامتة)" متاح فقط في نسخة التطبيق (exe) — يطبع بدون أي نوافذ على أي طابعة مثبتة في Windows (حتى
+              الطابعات عبر USB أو الشبكة المثبتة تعريفياً). في المتصفح سيُستخدم نافذة الطباعة بدلاً منه.</p>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="printer-form-copies">عدد النسخ</label>
+          <input type="number" id="printer-form-copies" min="1" max="5" value="1">
+        </div>
+
+        <!-- Kitchen printer assignment -->
+        <div id="printer-assignment-box">
+          <div class="form-group">
+            <label>الأصناف التي تطبع على هذه الطابعة</label>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <label class="payment-method-card" style="flex: 1;">
+                <input type="radio" name="printer-assignment" value="all" checked onchange="updatePrinterAssignmentUI()">
+                <div class="card-box"><span style="font-weight: bold; font-size: 12px;">كل الأصناف</span></div>
+              </label>
+              <label class="payment-method-card" style="flex: 1;">
+                <input type="radio" name="printer-assignment" value="categories" onchange="updatePrinterAssignmentUI()">
+                <div class="card-box"><span style="font-weight: bold; font-size: 12px;">تصنيفات محددة</span></div>
+              </label>
+              <label class="payment-method-card" style="flex: 1;">
+                <input type="radio" name="printer-assignment" value="products" onchange="updatePrinterAssignmentUI()">
+                <div class="card-box"><span style="font-weight: bold; font-size: 12px;">منتجات محددة</span></div>
+              </label>
+            </div>
+          </div>
+
+          <div id="printer-categories-box" style="display: none;" class="form-group">
+            <label>اختر التصنيفات:</label>
+            <div id="printer-categories-checkboxes"
+              style="max-height: 160px; overflow-y: auto; border: 1px solid var(--border-light); border-radius: 8px; padding: 8px;">
+            </div>
+          </div>
+
+          <div id="printer-products-box" style="display: none;" class="form-group">
+            <label>اختر المنتجات:</label>
+            <div id="printer-products-checkboxes"
+              style="max-height: 160px; overflow-y: auto; border: 1px solid var(--border-light); border-radius: 8px; padding: 8px;">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('modal-printer')">إلغاء</button>
+        <button class="btn btn-primary" onclick="submitPrinterForm()">حفظ الطابعة</button>
+      </div>
+    </div>
+  </div>
+
+
   <!-- Scripts -->
   <!-- Firebase Compat SDKs (Required for seamless Pure Frontend operation) -->
   <script src="./assets/js/firebase-app-compat.js"></script>
@@ -1002,7 +1234,7 @@
   <script src="database.js"></script>
   <script src="app.js"></script>
   <script>
-    if ('serviceWorker' in navigator) {
+    if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.protocol === 'http:')) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./service-worker.js')
           .then(registration => console.log('Service Worker registered with scope:', registration.scope))

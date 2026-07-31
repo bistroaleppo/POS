@@ -1,3 +1,6 @@
+// Detects whether the app is running inside the Electron desktop build (exe).
+const isElectron = !!(typeof window !== 'undefined' && window.bistroPrint && window.bistroPrint.isElectron);
+
 // Global Application State
 const state = {
   db: null,
@@ -6,6 +9,7 @@ const state = {
   products: [],
   salesHistory: [],
   reservations: [],
+  printers: [],
   activeOrders: {},    // In-memory cache of active orders keyed by tableId for instant dashboard rendering
 
   // Selections
@@ -96,6 +100,22 @@ async function handleLogout() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   try {
+    // 0. Warn when running from file:// (blocks WebUSB + offline caching)
+    if (window.location && window.location.protocol === 'file:' && !isElectron) {
+      console.warn('Bistro POS running from file://. Serve over HTTP(S) (e.g. http://localhost) for WebUSB pairing and offline mode.');
+      const notice = document.getElementById('file-protocol-notice');
+      if (notice) notice.style.display = 'block';
+    }
+
+    // 0.5 Electron build: no separate bridge server needed - printing is done directly via IPC
+    if (isElectron) {
+      console.log('Bistro POS is running as a desktop app (Electron). Direct printing enabled.');
+      const bridgeBox = document.getElementById('print-bridge-settings-box');
+      if (bridgeBox) bridgeBox.style.display = 'none';
+      const bridgeNote = document.getElementById('print-bridge-electron-note');
+      if (bridgeNote) bridgeNote.style.display = 'block';
+    }
+
     // 1. Start clock widget immediately so UI is alive
     initClock();
 
@@ -156,7 +176,12 @@ document.addEventListener('DOMContentLoaded', async () => {
               const brandFooterSetting = settings.find(s => s.id === 'restaurant_footer');
               if (brandFooterSetting) state.restaurantFooter = brandFooterSetting.value;
 
+              const printBridgeSetting = settings.find(s => s.id === 'print_bridge_url');
+              if (printBridgeSetting) state.printBridgeUrl = printBridgeSetting.value;
+
               // Update UI from newest state
+              const bridgeInput = document.getElementById('settings-print-bridge-url');
+              if (bridgeInput) bridgeInput.value = state.printBridgeUrl || '';
               updateBrandUI();
               updateGlobalStatsUI();
             }, err => console.error('Settings realtime listener failed:', err));
@@ -238,6 +263,12 @@ async function refreshStateData(options = {}) {
     }));
   }
 
+  if (options.printers || !state.printers || state.printers.length === 0) {
+    promises.push(state.db.getPrinters().then(res => {
+      state.printers = res || [];
+    }));
+  }
+
   if (options.settings || state.taxRate === undefined) {
     promises.push(
       state.db.getAll('settings', !!options.settings).then(settings => {
@@ -255,6 +286,9 @@ async function refreshStateData(options = {}) {
 
         const brandFooterSetting = settings.find(s => s.id === 'restaurant_footer');
         state.restaurantFooter = brandFooterSetting ? brandFooterSetting.value : 'Have a nice day!';
+
+        const printBridgeSetting = settings.find(s => s.id === 'print_bridge_url');
+        state.printBridgeUrl = printBridgeSetting ? printBridgeSetting.value : 'http://localhost:6333';
       }).catch(err => {
         console.error('Failed to load settings from DB. Applying defaults:', err);
         state.taxRate = 15;
@@ -262,6 +296,7 @@ async function refreshStateData(options = {}) {
         state.restaurantSlogan = 'Welcome';
         state.restaurantLogo = './assets/logo.png';
         state.restaurantFooter = 'Have a nice day!';
+        state.printBridgeUrl = 'http://localhost:6333';
       })
     );
   }
@@ -272,6 +307,11 @@ async function refreshStateData(options = {}) {
   const taxRateInput = document.getElementById('settings-tax-rate');
   if (taxRateInput) {
     taxRateInput.value = state.taxRate;
+  }
+
+  const bridgeInput = document.getElementById('settings-print-bridge-url');
+  if (bridgeInput) {
+    bridgeInput.value = state.printBridgeUrl || '';
   }
 
   // Perform global brand UI update
@@ -292,7 +332,7 @@ function initClock() {
     const now = new Date();
 
     // Format Time
-    timeDisplay.textContent = now.toLocaleTimeString('ar-SA', {
+    timeDisplay.textContent = now.toLocaleTimeString('ar-SY', {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
@@ -347,8 +387,9 @@ async function switchTab(tabId) {
     case 'tables':
       tabTitle.textContent = 'إدارة طاولات الصالة';
       tabDesc.textContent = 'إضافة وتعديل طاولات المطعم وسعتها المقعدية.';
-      await refreshStateData({ tables: true });
+      await refreshStateData({ tables: true, printers: true });
       renderTablesSettings();
+      renderPrintersList();
       break;
     case 'reports':
       tabTitle.textContent = 'الفواتير والتقارير المالية';
@@ -847,6 +888,9 @@ async function saveCurrentOrderState() {
   if (activeOrder) {
     activeOrder.items = [...state.currentCart.items];
 
+    // 1.5 Auto-print kitchen tickets for newly added items only
+    await printKitchenAuto();
+
     const table = state.tables.find(t => t.id === state.selectedTableId);
     if (table && table.status === 'billing') {
       table.status = 'occupied';
@@ -879,6 +923,8 @@ async function markTableForBilling() {
   const activeOrder = (state.activeOrders || {})[state.selectedTableId];
   if (activeOrder) {
     activeOrder.items = [...state.currentCart.items];
+    // Auto-print kitchen tickets for any newly added items before billing
+    await printKitchenAuto();
   }
 
   const table = state.tables.find(t => t.id === state.selectedTableId);
@@ -898,6 +944,120 @@ async function markTableForBilling() {
   );
 }
 
+/**
+ * Opens the move-table modal and populates it with available (empty) tables.
+ */
+function openMoveTableModal() {
+  if (!state.selectedTableId) return;
+
+  // Persist the current cart into the active order before moving
+  const activeOrder = (state.activeOrders || {})[state.selectedTableId];
+  if (activeOrder) activeOrder.items = [...state.currentCart.items];
+
+  const available = (state.tables || []).filter(t => t.id !== state.selectedTableId && t.status === 'available');
+  const select = document.getElementById('move-table-select');
+  if (!select) return;
+
+  if (available.length === 0) {
+    alert('لا توجد طاولات فارغة لنقل الطلب إليها. أفرغ طاولة أولاً أو أضف طاولة جديدة من إدارة الطاولات.');
+    return;
+  }
+
+  select.innerHTML = available
+    .map(t => `<option value="${t.id}">طاولة ${t.number} (سعة ${t.capacity})</option>`)
+    .join('');
+  openModal('modal-move-table');
+}
+
+/**
+ * Moves the active order from the current table to another (empty) table.
+ */
+async function moveTableOrder() {
+  const sourceId = state.selectedTableId;
+  const targetId = document.getElementById('move-table-select').value;
+  if (!sourceId || !targetId || sourceId === targetId) return;
+
+  const sourceTable = state.tables.find(t => t.id === sourceId);
+  const targetTable = state.tables.find(t => t.id === targetId);
+  if (!sourceTable || !targetTable) return;
+
+  // 1. Persist current cart into the order before moving
+  let order = (state.activeOrders || {})[sourceId];
+  if (!order) {
+    order = {
+      tableId: sourceId,
+      items: [],
+      customerName: state.currentCart.customerName || 'زبون عام',
+      customerCount: state.currentCart.customerCount || 1,
+      startTime: state.currentCart.startTime || Date.now()
+    };
+  }
+  order.items = [...state.currentCart.items];
+
+  // 2. Optimistic state update - memory first for instant UI
+  order.tableId = targetId;
+  if (!state.activeOrders) state.activeOrders = {};
+  state.activeOrders[targetId] = order;
+  delete state.activeOrders[sourceId];
+
+  sourceTable.status = 'available';
+  targetTable.status = 'occupied';
+
+  // 3. Switch to the target table and keep the order open there
+  state.selectedTableId = targetId;
+  state.currentCart.items = [...order.items];
+  state.currentCart.customerName = order.customerName || '';
+  state.currentCart.customerCount = order.customerCount || 1;
+  state.currentCart.startTime = order.startTime || Date.now();
+
+  closeModal('modal-move-table');
+  openOrderSlideOver(targetId);
+  renderDashboard();
+
+  // 4. Fire DB writes in background - non-blocking
+  state.db.saveActiveOrder(targetId, order).catch(err =>
+    console.error('Move: save target order failed:', err)
+  );
+  state.db.clearActiveOrder(sourceId).catch(err =>
+    console.error('Move: clear source order failed:', err)
+  );
+  state.db.updateTableStatus(targetId, 'occupied').catch(err =>
+    console.error('Move: update target status failed:', err)
+  );
+  state.db.updateTableStatus(sourceId, 'available').catch(err =>
+    console.error('Move: update source status failed:', err)
+  );
+}
+
+/**
+ * Cancels the whole active order of the current table and frees it.
+ */
+function cancelTableOrder() {
+  if (!state.selectedTableId) return;
+  const table = state.tables.find(t => t.id === state.selectedTableId);
+  if (!table) return;
+
+  if (!confirm(`هل أنت متأكد من إلغاء طلب طاولة ${table.number} بالكامل؟\nسيتم حذف جميع الطلبات المسجلة على هذه الطاولة ولا يمكن التراجع.`)) return;
+
+  // 1. Optimistic state update - memory first
+  table.status = 'available';
+  if (state.activeOrders) delete state.activeOrders[state.selectedTableId];
+  state.currentCart.items = [];
+  state.currentCart.customerName = '';
+  state.currentCart.customerCount = 1;
+
+  closeOrderSlideOver();
+  renderDashboard();
+
+  // 2. Fire DB writes in background - non-blocking
+  state.db.clearActiveOrder(state.selectedTableId).catch(err =>
+    console.error('Cancel: clear order failed:', err)
+  );
+  state.db.updateTableStatus(state.selectedTableId, 'available').catch(err =>
+    console.error('Cancel: update status failed:', err)
+  );
+}
+
 // ==========================================================================
 // 3. Checkout Confirmation & Bill Finalization
 // ==========================================================================
@@ -909,7 +1069,7 @@ function openCheckoutConfirmModal() {
 
   // Update header and time
   document.getElementById('chk-table-label').textContent = `فاتورة طاولة ${table.number}`;
-  document.getElementById('chk-time-label').textContent = `وقت الدخول: ${new Date(state.currentCart.startTime).toLocaleTimeString('ar-SA')}`;
+  document.getElementById('chk-time-label').textContent = `وقت الدخول: ${new Date(state.currentCart.startTime).toLocaleTimeString('ar-SY')}`;
 
   // Render checkout products list
   const container = document.getElementById('chk-items-container');
@@ -1087,6 +1247,9 @@ async function executeCheckout() {
   const netSubtotal = Math.max(0, subtotal - discount);
   const total = netSubtotal;
 
+  // Print any remaining unprinted kitchen tickets before finalizing the order
+  await printKitchenAuto();
+
   // Pre-generate invoice ID locally so the UI does not wait for any DB round-trip
   const invoiceId = String(Date.now());
 
@@ -1106,7 +1269,10 @@ async function executeCheckout() {
     tableNumber: table.number,
     customerName: state.currentCart.customerName,
     guestCount: state.currentCart.customerCount,
-    items: JSON.parse(JSON.stringify(state.currentCart.items)),
+    items: JSON.parse(JSON.stringify(state.currentCart.items)).map(it => {
+      const { printedQty, ...rest } = it;
+      return rest;
+    }),
     subtotal: subtotal,
     discount: discount,
     total: total,
@@ -1129,8 +1295,8 @@ async function executeCheckout() {
   closeModal('modal-checkout');
   closeOrderSlideOver();
 
-  // 3. Auto-print receipt immediately
-  printReceiptSlipDirectly(saleRecord, invoiceId);
+  // 3. Auto-print receipt immediately (routes to configured main printers, else default)
+  printReceiptToMainPrinters(saleRecord, invoiceId);
 
   // 4. Switch to reports and show receipt preview
   switchTab('reports');
@@ -1919,7 +2085,7 @@ function renderReports() {
     tr.style.cursor = 'pointer';
     tr.onclick = () => showReceiptPreview(sale.id);
 
-    const formattedDate = new Date(sale.timestamp).toLocaleString('ar-SA', {
+    const formattedDate = new Date(sale.timestamp).toLocaleString('ar-SY', {
       month: 'numeric',
       day: 'numeric',
       hour: '2-digit',
@@ -1958,7 +2124,7 @@ function showReceiptPreview(saleId) {
   if (!sale || !container) return;
 
   const formattedInvoiceId = 'Bis-' + String(sale.id).padStart(6, '0');
-  const formattedDate = new Date(sale.timestamp).toLocaleString('ar-SA');
+  const formattedDate = new Date(sale.timestamp).toLocaleString('ar-SY');
 
   let displayPaymentMethod = 'كاش';
   const rawMethod = String(sale.paymentMethod || '').toLowerCase().trim();
@@ -2117,7 +2283,7 @@ function printReceiptSlipDirectly(sale, invoiceId) {
   if (!sale) return;
 
   const formattedInvoiceId = 'Bis-' + String(invoiceId || sale.id).padStart(6, '0');
-  const formattedDate = new Date(sale.timestamp || sale.endTime || Date.now()).toLocaleString('ar-SA');
+  const formattedDate = new Date(sale.timestamp || sale.endTime || Date.now()).toLocaleString('ar-SY');
 
   let displayPaymentMethod = 'كاش';
   const rawMethod = String(sale.paymentMethod || '').toLowerCase().trim();
@@ -2380,7 +2546,7 @@ function printReceiptSlipDirectly(sale, invoiceId) {
 function printReceiptSlipById(saleId) {
   const sale = state.salesHistory.find(s => String(s.id) === String(saleId));
   if (sale) {
-    printReceiptSlipDirectly(sale, sale.id);
+    printReceiptToMainPrinters(sale, sale.id);
   }
 }
 
@@ -2450,18 +2616,19 @@ async function exportFullBackupJSON() {
       return;
     }
 
-    const [tables, categories, products, activeOrders, salesHistory, settings, reservations] = await Promise.all([
+    const [tables, categories, products, activeOrders, salesHistory, settings, reservations, printers] = await Promise.all([
       state.db.getAll('tables'),
       state.db.getAll('categories'),
       state.db.getAll('products'),
       state.db.getAll('active_orders'),
       state.db.getAll('sales_history'),
       state.db.getAll('settings'),
-      state.db.getAll('reservations')
+      state.db.getAll('reservations'),
+      state.db.getAll('printers')
     ]);
 
     const backupData = {
-      version: 1.0,
+      version: 1.1,
       timestamp: Date.now(),
       tables,
       categories,
@@ -2469,7 +2636,8 @@ async function exportFullBackupJSON() {
       active_orders: activeOrders,
       sales_history: salesHistory,
       settings,
-      reservations
+      reservations,
+      printers
     };
 
     const jsonString = JSON.stringify(backupData, null, 2);
@@ -2542,7 +2710,8 @@ async function handleFullBackupImport(event) {
         state.db.clearStore('active_orders'),
         state.db.clearStore('sales_history'),
         state.db.clearStore('settings'),
-        state.db.clearStore('reservations')
+        state.db.clearStore('reservations'),
+        state.db.clearStore('printers')
       ]);
 
       const putPromises = [];
@@ -2586,6 +2755,13 @@ async function handleFullBackupImport(event) {
       if (Array.isArray(backupData.reservations)) {
         for (const res of backupData.reservations) {
           putPromises.push(state.db.put('reservations', res));
+        }
+      }
+
+      // 9. Insert printers (if any exist in backup)
+      if (Array.isArray(backupData.printers)) {
+        for (const pr of backupData.printers) {
+          putPromises.push(state.db.put('printers', pr));
         }
       }
 
@@ -3006,3 +3182,1177 @@ window.submitReservationForm = submitReservationForm;
 window.updateReservationStatus = updateReservationStatus;
 window.deleteReservation = deleteReservation;
 window.seatReservation = seatReservation;
+
+// ==========================================================================
+// 9. Multi-Printer Management (Kitchen & Main Printers)
+// ==========================================================================
+
+function escapeHtml(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+class PrintManager {
+  constructor() {
+    this.usbSupported = typeof navigator !== 'undefined' && 'usb' in navigator;
+  }
+
+  /**
+   * Opens the browser chooser to pair a USB thermal (ESC/POS) printer.
+   */
+  async requestUsbDevice() {
+    if (!this.usbSupported) {
+      throw new Error('المتصفح الحالي لا يدعم الربط المباشر USB. استخدم Chrome أو Edge على اتصال آمن (HTTPS).');
+    }
+    const device = await navigator.usb.requestDevice({ filters: [{ classCode: 7 }] });
+    return device;
+  }
+
+  async _findUsbDevice(printer) {
+    if (!this.usbSupported) return null;
+    const cfg = printer.usbDevice || {};
+    try {
+      const devices = await navigator.usb.getDevices();
+      if (cfg.serialNumber) {
+        const bySerial = devices.find(d => d.serialNumber === cfg.serialNumber);
+        if (bySerial) return bySerial;
+      }
+      return devices.find(d => d.vendorId === cfg.vendorId && d.productId === cfg.productId) || null;
+    } catch (err) {
+      console.error('Find USB device failed:', err);
+      return null;
+    }
+  }
+
+  async _sendBytesToDevice(device, bytes) {
+    let claimedIface = null;
+    try {
+      await device.open();
+      if (!device.configuration) await device.selectConfiguration(1);
+      const iface = device.configuration.interfaces.find(i =>
+        (i.alternate && (i.alternate.interfaceClass === 7 || i.alternate.interfaceClass === 0))
+      ) || device.configuration.interfaces[0];
+      if (!iface) throw new Error('تعذر العثور على واجهة الطباعة في الجهاز.');
+
+      try {
+        await device.claimInterface(iface.interfaceNumber);
+        claimedIface = iface;
+      } catch (err) {
+        throw new Error(
+          'تعذر حجز واجهة الطابعة USB (الجهاز مستخدم من قبل جهة أخرى).\n\n' +
+          'الأسباب والحلول:\n' +
+          '1. تأكد من إغلاق أي نسخة أخرى من النظام أو أي تطبيق طابعة يستخدم الجهاز.\n' +
+          '2. تعريف طابعة وندوز قد يحجز الجهاز: أزل الطابعة من إعدادات Windows ثم أعد المحاولة.\n' +
+          '3. اسحب الطابعة وأعد وصلها (USB).\n\n' +
+          'الطريقة الأضمن لطباعة تلقائية بدون مشاكل: استخدم "شبكة IP" مع سيرفر الطباعة.'
+        );
+      }
+
+      const outEndpoint = iface.alternate.endpoints.find(e => e.direction === 'out');
+      if (!outEndpoint) throw new Error('تعذر العثور على منفذ الإخراج في الطابعة.');
+      await device.transferOut(outEndpoint.endpointNumber, bytes);
+    } finally {
+      if (claimedIface) {
+        try { await device.releaseInterface(claimedIface.interfaceNumber); } catch (e) { /* ignore */ }
+      }
+      try { await device.close(); } catch (e) { /* ignore */ }
+    }
+  }
+
+  /**
+   * Renders a text chunk on a tight canvas, crops it to its ink bounding box,
+   * and returns a 1-bit (dark=1) dotmap {w,h,dark}. The canvas direction is
+   * chosen per chunk so Arabic text is shaped and laid out RTL correctly while
+   * pure Latin/numeric chunks keep LTR order.
+   */
+  _renderChunk(text, bold, doubleSize) {
+    const px = (doubleSize ? 2 : 1) * 24;
+    const R = 2; // supersampling factor
+    const fontFamily = 'Cairo, "Segoe UI", Tahoma, Arial, sans-serif';
+    const fontStr = (bold ? 'bold ' : '') + px + 'px ' + fontFamily;
+    const probe = document.createElement('canvas').getContext('2d');
+    probe.font = fontStr;
+    const textWpx = probe.measureText(text).width;
+    const cw = Math.ceil(textWpx * R) + R * 2;
+    const ch = Math.ceil(px * 1.4 * R);
+    const c = document.createElement('canvas');
+    c.width = cw;
+    c.height = ch;
+    const g = c.getContext('2d');
+    g.direction = /[\u0600-\u06FF\u0750-\u077F]/.test(text) ? 'rtl' : 'ltr';
+    g.textAlign = 'left';
+    g.textBaseline = 'middle';
+    g.fillStyle = '#fff';
+    g.fillRect(0, 0, cw, ch);
+    g.fillStyle = '#000';
+    g.font = (bold ? 'bold ' : '') + (px * R) + 'px ' + fontFamily;
+    g.fillText(text, R, ch / 2);
+
+    const data = g.getImageData(0, 0, cw, ch).data;
+    let xmin = cw, xmax = -1, ymin = ch, ymax = -1;
+    for (let y = 0; y < ch; y++) {
+      for (let x = 0; x < cw; x++) {
+        const i = (y * cw + x) * 4;
+        if (data[i] + data[i + 1] + data[i + 2] < 3 * 200) {
+          if (x < xmin) xmin = x;
+          if (x > xmax) xmax = x;
+          if (y < ymin) ymin = y;
+          if (y > ymax) ymax = y;
+        }
+      }
+    }
+    if (xmax < xmin || ymax < ymin) return { w: 0, h: 0, dark: null };
+    const w = Math.ceil((xmax - xmin + 1) / R);
+    const h = Math.ceil((ymax - ymin + 1) / R);
+    const dark = new Uint8Array(w * h);
+    for (let dy = 0; dy < h; dy++) {
+      for (let dx = 0; dx < w; dx++) {
+        let s = 0;
+        for (let sy = 0; sy < R; sy++) {
+          for (let sx = 0; sx < R; sx++) {
+            const i = ((Math.min(ymax, ymin + dy * R + sy)) * cw + Math.min(xmax, xmin + dx * R + sx)) * 4;
+            s += data[i] + data[i + 1] + data[i + 2];
+          }
+        }
+        dark[dy * w + dx] = s / (R * R * 765) < 0.5 ? 1 : 0;
+      }
+    }
+    return { w, h, dark };
+  }
+
+  /**
+   * Emits a full-width ESC/POS raster (GS v 0) block. renderRow(row, col)
+   * returns true when the dot at (col, row) must be printed.
+   */
+  _rasterBlock(widthBytes, rows, renderRow) {
+    const out = [0x1d, 0x76, 0x30, 0x30, widthBytes & 0xff, (widthBytes >> 8) & 0xff, rows & 0xff, (rows >> 8) & 0xff];
+    for (let r = 0; r < rows; r++) {
+      for (let b = 0; b < widthBytes; b++) {
+        let byte = 0;
+        for (let kk = 0; kk < 8; kk++) {
+          const col = b * 8 + kk;
+          if (col < widthBytes * 8 && renderRow(r, col)) byte |= (1 << (7 - kk));
+        }
+        out.push(byte);
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Renders a text line as one or more ESC/POS raster (GS v 0) bitmaps, so
+   * Arabic prints correctly on thermal printers whose font ROM cannot display
+   * UTF-8 text. Long lines wrap to multiple chunks; each chunk is cropped to
+   * its ink box and composed at the requested alignment (center or right,
+   * RTL-style). Returns an array of byte arrays.
+   */
+  _rasterizeText(text, center, bold, doubleSize) {
+    const DPI = 203;
+    const CSS = 96;
+    const dotsW = 576; // 80mm @ 203dpi
+    const W = Math.ceil(dotsW / 8) * 8;
+    const widthBytes = W / 8;
+    const k = DPI / CSS;
+    const lineGap = 6; // blank dots between lines
+    const rightMargin = 16;
+    const px = (doubleSize ? 2 : 1) * 24;
+    const fontFamily = 'Cairo, "Segoe UI", Tahoma, Arial, sans-serif';
+    const probe = document.createElement('canvas').getContext('2d');
+    probe.font = (bold ? 'bold ' : '') + px + 'px ' + fontFamily;
+    const maxWpx = dotsW / k;
+
+    const words = String(text).split(/(\s+)/);
+    const chunks = [];
+    let cur = '';
+    for (const w of words) {
+      const test = cur + w;
+      if (probe.measureText(test).width <= maxWpx || !cur) {
+        cur = test;
+      } else {
+        chunks.push(cur.trim());
+        cur = w.trimStart();
+        while (probe.measureText(cur).width > maxWpx && cur.length > 1) {
+          let lo = 1, hi = cur.length;
+          while (lo < hi) {
+            const mid = Math.ceil((lo + hi) / 2);
+            if (probe.measureText(cur.slice(0, mid)).width <= maxWpx) lo = mid;
+            else hi = mid - 1;
+          }
+          chunks.push(cur.slice(0, lo));
+          cur = cur.slice(lo);
+        }
+      }
+    }
+    if (cur.trim()) chunks.push(cur.trim());
+    if (!chunks.length) chunks.push('');
+
+    const blocks = [];
+    for (const chunk of chunks) {
+      const c = this._renderChunk(chunk, bold, doubleSize);
+      if (!c.dark) continue;
+      const xoff = center ? Math.floor((W - c.w) / 2) : W - rightMargin - c.w;
+      const rows = c.h + lineGap;
+      blocks.push(this._rasterBlock(widthBytes, rows, (r, col) => {
+        if (r >= c.h) return false;
+        const cx = col - xoff;
+        return cx >= 0 && cx < c.w && c.dark[r * c.w + cx] === 1;
+      }));
+    }
+    return blocks;
+  }
+
+  /**
+   * Renders a two-cell row (right cell = main text, left cell = secondary
+   * text, e.g. item name + qty/price) as one or more raster blocks, so
+   * receipts mirror the on-screen two-column preview. Each cell wraps
+   * independently; paired chunks stay on the same row.
+   */
+  _rasterizeRow(leftText, rightText, bold, doubleSize) {
+    const DPI = 203;
+    const CSS = 96;
+    const dotsW = 576;
+    const W = Math.ceil(dotsW / 8) * 8;
+    const widthBytes = W / 8;
+    const k = DPI / CSS;
+    const lineGap = 6;
+    const leftMargin = 8;
+    const rightMargin = 16;
+    const px = (doubleSize ? 2 : 1) * 24;
+    const fontFamily = 'Cairo, "Segoe UI", Tahoma, Arial, sans-serif';
+    const probe = document.createElement('canvas').getContext('2d');
+    probe.font = (bold ? 'bold ' : '') + px + 'px ' + fontFamily;
+    const maxWpx = dotsW / k;
+
+    const wrapCell = (text) => {
+      const words = String(text).split(/(\s+)/);
+      const chunks = [];
+      let cur = '';
+      for (const w of words) {
+        const test = cur + w;
+        if (probe.measureText(test).width <= maxWpx || !cur) {
+          cur = test;
+        } else {
+          chunks.push(cur.trim());
+          cur = w.trimStart();
+        }
+      }
+      if (cur.trim()) chunks.push(cur.trim());
+      return chunks.length ? chunks : [''];
+    };
+
+    const L = wrapCell(leftText);
+    const Rt = wrapCell(rightText);
+    const n = Math.max(L.length, Rt.length);
+    const blocks = [];
+    for (let i = 0; i < n; i++) {
+      const lc = L[i] ? this._renderChunk(L[i], bold, doubleSize) : null;
+      const rc = Rt[i] ? this._renderChunk(Rt[i], bold, doubleSize) : null;
+      if (!lc && !rc) continue;
+      const lx = lc && lc.dark ? leftMargin : -1;
+      const rx = rc && rc.dark ? W - rightMargin - rc.w : -1;
+      const inkH = Math.max(lc ? lc.h : 0, rc ? rc.h : 0);
+      const rows = inkH + lineGap;
+      blocks.push(this._rasterBlock(widthBytes, rows, (r, col) => {
+        if (r >= inkH) return false;
+        if (lx >= 0) {
+          const cx = col - lx;
+          if (cx >= 0 && cx < lc.w && lc.dark[r * lc.w + cx] === 1) return true;
+        }
+        if (rx >= 0) {
+          const cx = col - rx;
+          if (cx >= 0 && cx < rc.w && rc.dark[r * rc.w + cx] === 1) return true;
+        }
+        return false;
+      }));
+    }
+    return blocks;
+  }
+
+  /**
+   * Builds ESC/POS bytes from a set of lines.
+   * Each line: { t: text, b: bold, c: center, s: double-size, l?: left cell }
+   * Text is rendered as raster bitmaps (see _rasterizeText/_rasterizeRow) so
+   * Arabic prints correctly on thermal printers without an Arabic font ROM.
+   */
+  _buildEscPos(lines, copies) {
+    const out = [0x1b, 0x40]; // Initialize printer
+
+    for (let c = 0; c < (copies || 1); c++) {
+      for (const line of lines) {
+        if (line.empty) {
+          out.push(0x0a);
+          continue;
+        }
+        const blocks = line.l != null
+          ? this._rasterizeRow(String(line.l), String(line.t), !!line.b, !!line.s)
+          : this._rasterizeText(String(line.t), !!line.c, !!line.b, !!line.s);
+        for (const blk of blocks) {
+          for (const byte of blk) out.push(byte);
+        }
+      }
+      if (c < (copies || 1) - 1) {
+        for (let f = 0; f < 3; f++) out.push(0x0a); // Feed between copies
+      }
+    }
+    out.push(0x1d, 0x56, 0x00); // Full cut
+    return new Uint8Array(out);
+  }
+
+  /**
+   * Prints raw text lines to a USB printer.
+   */
+  async printUsb(printer, lines, copies) {
+    const device = await this._findUsbDevice(printer);
+    if (!device) {
+      throw new Error(`لم يتم العثور على طابعة USB "${printer.name}". أعد ربطها من الإعدادات.`);
+    }
+    await this._sendBytesToDevice(device, this._buildEscPos(lines, copies));
+  }
+
+  /**
+   * Converts a Uint8Array to a Base64 string (chunked to avoid stack overflow).
+   */
+  _bufToBase64(bytes) {
+    let bin = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(bin);
+  }
+
+  /**
+   * Sends raw ESC/POS bytes to a network printer through the local print bridge.
+   */
+  async _sendToBridge(printer, bytes) {
+    const bridge = String(state.printBridgeUrl || 'http://localhost:6333').trim().replace(/\/+$/, '');
+    if (!bridge) throw new Error('سيرفر الطباعة الوسيط غير مضبوط. حدد عنوانه من إعدادات النظام.');
+
+    const res = await fetch(bridge + '/print', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ip: printer.ip || '',
+        port: Number(printer.port) || 9100,
+        bytesBase64: this._bufToBase64(bytes)
+      })
+    }).catch(() => {
+      throw new Error(`تعذر الاتصال بسيرفر الطباعة الوسيط (${bridge}).\nشغّله على جهاز الكاشير بالأمر: node print-server.js`);
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      throw new Error((data.error || '') + (data.device ? ` (${data.device})` : '') || ('سيرفر الطباعة رفض الطلب (HTTP ' + res.status + ')'));
+    }
+  }
+
+  /**
+   * Sends raw ESC/POS bytes to a printer regardless of its connection type
+   * (network via bridge or Electron IPC, USB via WebUSB).
+   */
+  async sendRaw(printer, bytes) {
+    if (printer.connection === 'network') {
+      if (isElectron) {
+        await window.bistroPrint.printRaw({
+          ip: printer.ip,
+          port: Number(printer.port) || 9100,
+          bytesBase64: this._bufToBase64(bytes)
+        });
+      } else {
+        await this._sendToBridge(printer, bytes);
+      }
+    } else if (printer.connection === 'usb') {
+      if (isElectron) {
+        await window.bistroPrint.printUsbDirect({
+          deviceName: printer.windowsDeviceName || printer.name,
+          bytesBase64: this._bufToBase64(bytes)
+        });
+      } else {
+        const device = await this._findUsbDevice(printer);
+        if (!device) {
+          throw new Error(`لم يتم العثور على طابعة USB "${printer.name}". أعد ربطها من الإعدادات.`);
+        }
+        await this._sendBytesToDevice(device, bytes);
+      }
+    }
+  }
+
+  /**
+   * Routes a set of text lines to the target printer: raw ESC/POS for network
+   * and USB printers, silent Windows printing (desktop build), or the system
+   * print dialog as a fallback.
+   */
+  async _routeLines(printer, lines, dialogTitle, dialogHtml) {
+    if (printer.connection === 'network' || (printer.connection === 'usb' && this.usbSupported)) {
+      await this.sendRaw(printer, this._buildEscPos(lines, printer.copies || 1));
+    } else if (printer.connection === 'windows' && isElectron) {
+      await window.bistroPrint.printSilent({
+        deviceName: printer.windowsDeviceName,
+        html: this._buildDialogDoc(dialogTitle, dialogHtml),
+        copies: printer.copies || 1
+      });
+    } else {
+      this.printDialog(dialogTitle, dialogHtml);
+    }
+  }
+
+  /**
+   * Builds the full print document (HTML + receipt CSS).
+   */
+  _buildDialogDoc(title, bodyHtml) {
+    return `<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>${title}</title>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
+        * { box-sizing: border-box; }
+        @page { size: 72mm auto; margin: 0; }
+        body { font-family: 'Cairo', sans-serif; width: 72mm; margin: 0 auto; padding: 2mm 2mm 3mm; direction: rtl; font-size: 10px; line-height: 1.35; color: #000; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .ticket-header { text-align: center; margin-bottom: 2mm; }
+        .ticket-header h2 { margin: 0; font-size: 14px; font-weight: 800; }
+        .ticket-header p { margin: 1px 0; }
+        .divider { border-top: 1px dashed #000; margin: 2mm 0; }
+        .row { display: flex; justify-content: space-between; margin-bottom: 1mm; }
+        .items-table { width: 100%; }
+        .items-table .row { font-size: 11px; font-weight: 700; }
+        .qty { text-align: center; font-weight: 800; }
+        .footer { text-align: center; margin-top: 3mm; font-size: 8px; color: #555; }
+      </style></head><body>${bodyHtml}</body></html>`;
+  }
+
+  /**
+   * Prints an HTML ticket via the system print dialog.
+   * The document title carries the printer name so the user can route it
+   * to the correct physical printer.
+   */
+  printDialog(title, html) {
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(this._buildDialogDoc(title, html));
+    doc.close();
+
+    setTimeout(() => {
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+      setTimeout(() => document.body.removeChild(iframe), 1500);
+    }, 250);
+  }
+
+  /**
+   * Prints a kitchen ticket (only the newly-added items) to one printer.
+   */
+  async printKitchenTicket(printer, ticket) {
+    const lines = [];
+    lines.push({ t: 'أمر مطبخ', c: true, b: true, s: true });
+    lines.push({ t: `طاولة ${ticket.tableNumber}`, c: true, b: true });
+    lines.push({ t: `الوقت: ${ticket.time}`, c: true });
+    lines.push({ empty: true });
+    for (const item of ticket.items) {
+      lines.push({ t: String(item.name), l: 'x' + item.qty, b: true });
+    }
+    lines.push({ empty: true });
+    if (ticket.customerName) lines.push({ t: `زبون: ${ticket.customerName}` });
+    lines.push({ t: `# ${ticket.orderId || ''}`, c: true });
+    lines.push({ t: '------------------', c: true });
+
+    const itemsHtml = ticket.items.map(it => `
+      <div class="row">
+        <span>${escapeHtml(it.name)}</span>
+        <span class="qty">×${it.qty}</span>
+      </div>`).join('');
+    const html = `
+      <div class="ticket-header">
+        <h2>أمر مطبخ</h2>
+        <div style="display:flex; justify-content:center; font-weight:700;">طاولة ${ticket.tableNumber}</div>
+        <div style="display:flex; justify-content:center; font-size:11px;">الوقت: ${ticket.time}</div>
+      </div>
+      <div class="divider"></div>
+      <div class="items-table">${itemsHtml}</div>
+      <div class="divider"></div>
+      <div class="footer">${ticket.customerName ? 'زبون: ' + escapeHtml(ticket.customerName) : ''}&nbsp;</div>`;
+
+    await this._routeLines(printer, lines, `طابعة المطبخ: ${printer.name}`, html);
+  }
+
+  /**
+   * Prints a customer receipt (main printer).
+   */
+  async printMainReceipt(printer, sale, invoiceId) {
+    const formattedInvoiceId = 'Bis-' + String(invoiceId || sale.id).padStart(6, '0');
+    const formattedDate = new Date(sale.timestamp || sale.endTime || Date.now()).toLocaleString('ar-SY');
+    const rawMethod = String(sale.paymentMethod || '').toLowerCase().trim();
+    const displayMethod = (rawMethod.includes('card') || rawMethod.includes('bank') || rawMethod.includes('شبكة') || rawMethod.includes('بطاقة') || rawMethod.includes('مدى')) ? 'بنك' : 'كاش';
+    const oldLira = Math.round(sale.total * 100).toLocaleString('en-US');
+
+    const lines = [];
+    lines.push({ t: state.restaurantName || 'Restaurant', c: true, b: true, s: true });
+    lines.push({ t: state.restaurantSlogan || '', c: true });
+    lines.push({ empty: true });
+    lines.push({ t: '------------------', c: true });
+    lines.push({ t: 'رقم الفاتورة:', l: formattedInvoiceId });
+    lines.push({ t: 'طاولة:', l: String(sale.tableNumber) });
+    lines.push({ t: 'زبون:', l: sale.customerName || 'زبون عام' });
+    lines.push({ t: 'طريقة الدفع:', l: displayMethod });
+    lines.push({ t: 'التاريخ:', l: formattedDate });
+    lines.push({ t: '------------------', c: true });
+    for (const item of sale.items) {
+      const originalTotal = item.price * item.quantity;
+      if (item.isHospitality) {
+        lines.push({ t: String(item.name), l: `x${item.quantity} (ضيافة) 0`, b: true });
+      } else {
+        lines.push({ t: String(item.name), l: `x${item.quantity} ${formatCurrency(originalTotal)}`, b: true });
+      }
+    }
+    lines.push({ t: '------------------', c: true });
+    lines.push({ t: 'المجموع الفرعي:', l: formatCurrency(sale.subtotal) });
+    if (sale.discount > 0) lines.push({ t: 'الحسم:', l: '-' + formatCurrency(sale.discount) });
+    lines.push({ t: 'المجموع النهائي:', l: formatCurrency(sale.total), b: true });
+    lines.push({ t: `(السعر بالليرة القديمة: ${oldLira})`, c: true });
+    if (sale.currencyType === 'dollar' && sale.dollarTotal) {
+      lines.push({ t: 'المدفوع بالدولار:', l: '$' + sale.dollarTotal, b: true });
+      lines.push({ t: 'سعر الصرف:', l: String(sale.exchangeRate) });
+    }
+    lines.push({ t: '------------------', c: true });
+    lines.push({ t: state.restaurantFooter || '', c: true });
+
+    const itemsHtml = sale.items.map(item => {
+      const originalTotal = item.price * item.quantity;
+      if (item.isHospitality) {
+        return `<div class="row"><span>${escapeHtml(item.name)} <span style="font-size:10px; border:1px solid #000; border-radius:3px; padding:0 3px;">ضيافة</span></span><span><s>${formatCurrency(originalTotal)}</s> 0 ل.س</span></div>`;
+      }
+      return `<div class="row"><span>${escapeHtml(item.name)} (x${item.quantity})</span><span>${formatCurrency(originalTotal)}</span></div>`;
+    }).join('');
+    const discountHtml = sale.discount > 0
+      ? `<div class="row" style="color:#c0392b; font-weight:700;"><span>الحسم الإضافي:</span><span>-${formatCurrency(sale.discount)}</span></div>`
+      : '';
+    const dollarHtml = (sale.currencyType === 'dollar' && sale.dollarTotal)
+      ? `<div class="row" style="font-weight:700;"><span>المدفوع بالدولار ($):</span><span>$${sale.dollarTotal}</span></div><div style="text-align:center; font-size:8px; color:#555;">سعر الصرف: ${sale.exchangeRate} ل.س</div>`
+      : '';
+
+    const html = `
+      <div class="ticket-header">
+        <h2>${escapeHtml(state.restaurantName || 'Restaurant')}</h2>
+        <p style="font-style:italic; font-size:11px;">${escapeHtml(state.restaurantSlogan || '')}</p>
+      </div>
+      <div class="divider"></div>
+      <div class="row"><span>رقم الفاتورة:</span><span style="font-weight:700;">${formattedInvoiceId}</span></div>
+      <div class="row"><span>طاولة:</span><span>${sale.tableNumber}</span></div>
+      <div class="row"><span>زبون:</span><span>${escapeHtml(sale.customerName || 'زبون عام')}</span></div>
+      <div class="row"><span>طريقة الدفع:</span><span>${displayMethod}</span></div>
+      <div class="row"><span>التاريخ:</span><span>${formattedDate}</span></div>
+      <div class="divider"></div>
+      <div class="items-table">${itemsHtml}</div>
+      <div class="divider"></div>
+      <div class="row"><span>المجموع الفرعي:</span><span>${formatCurrency(sale.subtotal)}</span></div>
+      ${discountHtml}
+      <div class="row" style="font-weight:800; font-size:12px; border-top:1px dashed #000; padding-top:1.5mm; margin-top:1mm;"><span>المجموع النهائي:</span><span>${formatCurrency(sale.total)}</span></div>
+      <div style="text-align:center; font-size:8px; color:#555;">(السعر بالليرة القديمة: ${oldLira} ل.س)</div>
+      ${dollarHtml}
+      <div class="divider"></div>
+      <div class="footer">${escapeHtml(state.restaurantFooter || '')}</div>`;
+
+    await this._routeLines(printer, lines, `طابعة الفواتير: ${printer.name}`, html);
+  }
+}
+
+const printManager = new PrintManager();
+
+// --- Kitchen ticket routing logic ---
+
+function getActiveKitchenPrinters() {
+  return (state.printers || []).filter(p => (p.type === 'kitchen' || p.type === 'bar') && p.active);
+}
+
+function printerMatchesItem(printer, item) {
+  if (printer.assignment === 'all') return true;
+  if (printer.assignment === 'categories') {
+    const prod = state.products.find(p => p.id === item.productId);
+    return !!(prod && printer.categoryIds && printer.categoryIds.includes(prod.categoryId));
+  }
+  if (printer.assignment === 'products') {
+    return !!(printer.productIds && printer.productIds.includes(item.productId));
+  }
+  return true;
+}
+
+function getUnprintedItems(items) {
+  return items.map((item, idx) => ({ item, idx }))
+    .filter(({ item }) => (item.quantity || 0) > (item.printedQty || 0));
+}
+
+/**
+ * Prints kitchen tickets for the newly-added (unprinted) items of the currently
+ * selected table. Returns the set of item indexes that were successfully printed.
+ */
+async function printKitchenTickets(items) {
+  const kitchenPrinters = getActiveKitchenPrinters();
+  const printedIdx = new Set();
+  if (kitchenPrinters.length === 0 || !items || items.length === 0) return printedIdx;
+
+  const table = state.tables.find(t => t.id === state.selectedTableId);
+  const unprinted = getUnprintedItems(items);
+  if (unprinted.length === 0) return printedIdx;
+
+  const ticket = {
+    tableNumber: table ? table.number : '',
+    time: new Date().toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' }),
+    customerName: state.currentCart.customerName || '',
+    orderId: new Date().toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  };
+
+  // 1. Route items to the kitchen printers matching their assignment
+  const handled = new Set();
+  for (const printer of kitchenPrinters) {
+    const assigned = unprinted.filter(({ item }) => printerMatchesItem(printer, item));
+    if (assigned.length === 0) continue;
+    try {
+      await printManager.printKitchenTicket(printer, {
+        ...ticket,
+        items: assigned.map(({ item }) => ({ name: item.name, qty: item.quantity - (item.printedQty || 0) }))
+      });
+      assigned.forEach(({ idx }) => { printedIdx.add(idx); handled.add(idx); });
+    } catch (err) {
+      console.error(`Kitchen print failed on "${printer.name}":`, err);
+    }
+  }
+
+  // 2. Leftovers (items that matched no kitchen printer) go to the first active kitchen printer
+  const leftovers = unprinted.filter(({ idx }) => !handled.has(idx));
+  if (leftovers.length > 0) {
+    const fallback = kitchenPrinters[0];
+    try {
+      await printManager.printKitchenTicket(fallback, {
+        ...ticket,
+        items: leftovers.map(({ item }) => ({ name: item.name, qty: item.quantity - (item.printedQty || 0) }))
+      });
+      leftovers.forEach(({ idx }) => printedIdx.add(idx));
+    } catch (err) {
+      console.error('Fallback kitchen print failed:', err);
+    }
+  }
+
+  return printedIdx;
+}
+
+function markItemsPrinted(items, printedIdx) {
+  printedIdx.forEach(idx => {
+    if (items[idx]) items[idx].printedQty = items[idx].quantity;
+  });
+}
+
+/**
+ * Auto-print hook: prints newly-added items for the selected table and marks them.
+ * Called from saveCurrentOrderState, markTableForBilling and executeCheckout.
+ */
+async function printKitchenAuto() {
+  if (!state.selectedTableId) return;
+  const order = (state.activeOrders || {})[state.selectedTableId];
+  if (!order || !order.items) return;
+  const printedIdx = await printKitchenTickets(order.items);
+  if (printedIdx.size > 0) markItemsPrinted(order.items, printedIdx);
+}
+
+/**
+ * Manual "print kitchen tickets" button (prints only items not yet printed).
+ */
+async function printKitchenTicketsManual() {
+  if (!state.selectedTableId) return;
+  const order = (state.activeOrders || {})[state.selectedTableId];
+  if (!order || !order.items || order.items.length === 0) {
+    alert('لا توجد طلبات مسجلة لهذه الطاولة.');
+    return;
+  }
+
+  if (getActiveKitchenPrinters().length === 0) {
+    alert('لا توجد طابعة مطبخ أو بار نشطة. أضف طابعة من نوع "مطبخ" أو "بار" من إعدادات النظام أولاً.');
+    return;
+  }
+
+  const printedIdx = await printKitchenTickets(order.items);
+  if (printedIdx.size === 0) {
+    if (getUnprintedItems(order.items).length === 0) {
+      alert('لا توجد أصناف جديدة غير مطبوعة لهذه الطاولة. كل الأصناف مطبوعة بالفعل.');
+    } else {
+      alert('فشلت الطباعة. تحقق من اتصال الطابعة وحاول مجدداً.');
+    }
+    return;
+  }
+
+  markItemsPrinted(order.items, printedIdx);
+  state.currentCart.items = order.items;
+  await state.db.saveActiveOrder(state.selectedTableId, order).catch(err =>
+    console.error('Save printed state failed:', err)
+  );
+  alert('تم إرسال تذاكر المطبخ بنجاح.');
+}
+
+/**
+ * Routes a sale receipt to the configured main printers (USB or dialog).
+ * Falls back to the default receipt printer when no main printer is configured.
+ */
+async function printReceiptToMainPrinters(sale, invoiceId) {
+  const mains = (state.printers || []).filter(p => p.type === 'main' && p.active);
+  if (mains.length === 0) {
+    printReceiptSlipDirectly(sale, invoiceId);
+    return;
+  }
+  let anySucceeded = false;
+  for (const printer of mains) {
+    try {
+      await printManager.printMainReceipt(printer, sale, invoiceId);
+      anySucceeded = true;
+    } catch (err) {
+      console.error(`Main receipt print failed on "${printer.name}":`, err);
+    }
+  }
+  if (!anySucceeded) {
+    printReceiptSlipDirectly(sale, invoiceId);
+  }
+}
+
+// --- Printers CRUD (Settings) ---
+
+function renderPrintersList() {
+  const container = document.getElementById('printers-list');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const printers = state.printers || [];
+  if (printers.length === 0) {
+    container.innerHTML = `<div class="loading-placeholder" style="padding: 15px; text-align: center;">لا توجد طابعات مضافة بعد. أضف طابعة مطبخ أو رئيسية للبدء بالطباعة المتعددة.</div>`;
+    return;
+  }
+
+  printers.forEach(printer => {
+    const card = document.createElement('div');
+    card.style.cssText = 'border:1px solid var(--border-light); border-radius:10px; padding:12px 14px; margin-bottom:10px; background: var(--bg-card, #ffffff); display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;';
+
+    let typeTxt = 'مطبخ (تذاكر)';
+    let typeColor = '#193B23';
+    let typeBadge = 'occupied';
+    if (printer.type === 'bar') { typeTxt = 'بار (تذاكر)'; typeColor = '#3498db'; typeBadge = 'billing'; }
+    else if (printer.type === 'main') { typeTxt = 'رئيسية (إيصال)'; typeColor = '#d4af37'; typeBadge = 'billing'; }
+
+    let connTxt = 'نافذة الطباعة';
+    if (printer.connection === 'usb') connTxt = 'USB مباشر';
+    else if (printer.connection === 'network') connTxt = `شبكة IP: ${escapeHtml(printer.ip || '')}` + (printer.port && printer.port !== 9100 ? ':' + printer.port : '');
+    else if (printer.connection === 'windows') connTxt = 'ويندوز: ' + escapeHtml(printer.windowsDeviceName || '');
+    let assignmentTxt = 'كل الأصناف';
+    if (printer.assignment === 'categories') assignmentTxt = 'تصنيفات محددة';
+    else if (printer.assignment === 'products') assignmentTxt = 'منتجات محددة';
+
+    card.innerHTML = `
+      <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:200px;">
+        <div style="width:42px; height:42px; border-radius:10px; background:${printer.type === 'main' ? 'rgba(212,175,55,0.12)' : printer.type === 'bar' ? 'rgba(52,152,219,0.12)' : 'rgba(25,59,35,0.10)'}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="${typeColor}" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        </div>
+        <div>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <strong style="font-size:14px;">${escapeHtml(printer.name)}</strong>
+            <span class="badge-status ${typeBadge}" style="font-size:10px; padding:2px 8px; border-radius:10px;">${typeTxt}</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">
+            ${connTxt} • ${assignmentTxt} • نسخ: ${printer.copies || 1}
+            ${printer.connection === 'usb' && printer.usbDevice ? ` • <span style="color:#10b981;">${escapeHtml(printer.usbDevice.productName || 'متصل')}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+        <label style="display:flex; align-items:center; gap:5px; font-size:12px; cursor:pointer;">
+          <input type="checkbox" ${printer.active ? 'checked' : ''} onchange="togglePrinterActive('${printer.id}')">
+          مفعّل
+        </label>
+        <button class="btn btn-secondary btn-xs" onclick="testPrintPrinter('${printer.id}')" title="طباعة تجريبية">تجربة</button>
+        <button class="btn btn-secondary btn-xs" onclick="openEditPrinterModal('${printer.id}')">تعديل</button>
+        <button class="btn btn-danger-outline btn-xs" onclick="deletePrinter('${printer.id}')">حذف</button>
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+function setUsbDeviceOnForm(device) {
+  const info = {
+    vendorId: device.vendorId,
+    productId: device.productId,
+    serialNumber: device.serialNumber || '',
+    productName: device.productName || 'طابعة USB حرارية'
+  };
+  document.getElementById('printer-form-usb-json').value = JSON.stringify(info);
+  document.querySelector('input[name="printer-connection"][value="usb"]').checked = true;
+  document.getElementById('printer-usb-device-box').style.display = 'block';
+  document.getElementById('printer-usb-device-name').textContent = info.productName;
+  updatePrinterTypeUI();
+}
+
+async function pairUsbPrinter() {
+  if (!printManager.usbSupported) {
+    alert('المتصفح الحالي لا يدعم الربط المباشر USB.\nاستخدم متصفح Chrome أو Edge على اتصال آمن (HTTPS) مع طابعة حرارية 58mm أو 80mm.');
+    return;
+  }
+  try {
+    const device = await printManager.requestUsbDevice();
+    openAddPrinterModal(device);
+  } catch (err) {
+    if (err && err.name === 'NotFoundError') return; // User cancelled the chooser
+    console.error('USB pairing failed:', err);
+    alert('فشل ربط الطابعة: ' + (err && err.message ? err.message : err));
+  }
+}
+
+function updatePrinterTypeUI() {
+  const type = document.querySelector('input[name="printer-type"]:checked').value;
+  const connection = document.querySelector('input[name="printer-connection"]:checked').value;
+  const isKitchen = type === 'kitchen' || type === 'bar';
+  const assignmentBox = document.getElementById('printer-assignment-box');
+  if (assignmentBox) assignmentBox.style.display = isKitchen ? 'block' : 'none';
+
+  const usbBox = document.getElementById('printer-usb-device-box');
+  if (usbBox) {
+    if (connection === 'usb') {
+      usbBox.style.display = 'block';
+    } else if (!document.getElementById('printer-form-usb-json').value) {
+      usbBox.style.display = 'none';
+    }
+  }
+
+  const networkBox = document.getElementById('printer-network-fields');
+  if (networkBox) networkBox.style.display = connection === 'network' ? 'block' : 'none';
+
+  const windowsBox = document.getElementById('printer-windows-fields');
+  if (windowsBox) windowsBox.style.display = connection === 'windows' ? 'block' : 'none';
+
+  updatePrinterAssignmentUI();
+}
+
+/**
+ * Populates the Windows printers dropdown from the Electron main process.
+ */
+async function populateWindowsPrinters(selectedDevice = '') {
+  const select = document.getElementById('printer-form-windows-device');
+  if (!select) return;
+  const hint = document.getElementById('printer-windows-note');
+  if (!isElectron) {
+    if (hint) hint.style.display = 'block';
+    select.innerHTML = '<option value="">غير متاح في المتصفح</option>';
+    return;
+  }
+  if (hint) hint.style.display = 'none';
+  select.innerHTML = '<option value="">جاري تحميل الطابعات...</option>';
+  try {
+    const printers = await window.bistroPrint.listPrinters();
+    if (!printers || printers.length === 0) {
+      select.innerHTML = '<option value="">لا توجد طابعات مثبتة في Windows</option>';
+      return;
+    }
+    let options = '';
+    printers.forEach(p => {
+      const name = p.name || '';
+      // Chromium status: 0=idle, 1=busy, 2=unavailable, 3=error, 4=unknown
+      const disconnected = (p.status === 2 || p.status === 3);
+      const label = (p.displayName || name) + (disconnected ? ' (غير متصلة)' : '');
+      options += `<option value="${name.replace(/"/g, '&quot;')}">${escapeHtml(label)}</option>`;
+    });
+    select.innerHTML = options || '<option value="">لا توجد طابعات</option>';
+    if (selectedDevice) {
+      select.value = selectedDevice;
+      if (select.value !== selectedDevice) select.value = '';
+    }
+  } catch (err) {
+    console.error('Failed to load Windows printers:', err);
+    select.innerHTML = '<option value="">فشل تحميل الطابعات</option>';
+  }
+}
+
+window.populateWindowsPrinters = populateWindowsPrinters;
+
+function updatePrinterAssignmentUI() {
+  const assignment = document.querySelector('input[name="printer-assignment"]:checked')?.value || 'all';
+  const catBox = document.getElementById('printer-categories-box');
+  const prodBox = document.getElementById('printer-products-box');
+  if (catBox) catBox.style.display = assignment === 'categories' ? 'block' : 'none';
+  if (prodBox) prodBox.style.display = assignment === 'products' ? 'block' : 'none';
+}
+
+function populatePrinterChecklists(printer = null) {
+  const catBox = document.getElementById('printer-categories-checkboxes');
+  if (catBox) {
+    catBox.innerHTML = '';
+    if ((state.categories || []).length === 0) {
+      catBox.innerHTML = '<div style="font-size:12px; color:var(--text-muted);">لا توجد تصنيفات بعد.</div>';
+    }
+    state.categories.forEach(cat => {
+      const label = document.createElement('label');
+      label.style.cssText = 'display:flex; align-items:center; gap:6px; padding:4px 2px; font-size:13px; cursor:pointer;';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = cat.id;
+      cb.checked = !!(printer && printer.categoryIds && printer.categoryIds.includes(cat.id));
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(cat.name));
+      catBox.appendChild(label);
+    });
+  }
+
+  const prodBox = document.getElementById('printer-products-checkboxes');
+  if (prodBox) {
+    prodBox.innerHTML = '';
+    if ((state.products || []).length === 0) {
+      prodBox.innerHTML = '<div style="font-size:12px; color:var(--text-muted);">لا توجد منتجات بعد.</div>';
+    }
+    state.products.forEach(prod => {
+      const label = document.createElement('label');
+      label.style.cssText = 'display:flex; align-items:center; gap:6px; padding:4px 2px; font-size:13px; cursor:pointer;';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.value = prod.id;
+      cb.checked = !!(printer && printer.productIds && printer.productIds.includes(prod.id));
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(prod.name));
+      prodBox.appendChild(label);
+    });
+  }
+}
+
+function openAddPrinterModal(usbDevice = null) {
+  document.getElementById('printer-form-id').value = '';
+  document.getElementById('printer-form-name').value = '';
+  document.getElementById('printer-form-copies').value = '1';
+  document.querySelector('input[name="printer-type"][value="kitchen"]').checked = true;
+  document.querySelector('input[name="printer-assignment"][value="all"]').checked = true;
+  document.getElementById('printer-modal-title').textContent = 'إضافة طابعة جديدة';
+  document.getElementById('printer-form-ip').value = '';
+  document.getElementById('printer-form-port').value = '9100';
+
+  if (usbDevice) {
+    setUsbDeviceOnForm(usbDevice);
+  } else {
+    document.getElementById('printer-form-usb-json').value = '';
+    document.querySelector('input[name="printer-connection"][value="dialog"]').checked = true;
+    document.getElementById('printer-usb-device-box').style.display = 'none';
+  }
+
+  updatePrinterTypeUI();
+  populatePrinterChecklists();
+  populateWindowsPrinters('');
+  openModal('modal-printer');
+  document.getElementById('printer-form-name').focus();
+}
+
+function openEditPrinterModal(id) {
+  const printer = (state.printers || []).find(p => p.id === id);
+  if (!printer) return;
+
+  document.getElementById('printer-form-id').value = printer.id;
+  document.getElementById('printer-form-name').value = printer.name || '';
+  document.getElementById('printer-form-copies').value = printer.copies || 1;
+  document.querySelector(`input[name="printer-type"][value="${printer.type || 'kitchen'}"]`).checked = true;
+  document.querySelector(`input[name="printer-connection"][value="${printer.connection || 'dialog'}"]`).checked = true;
+  document.querySelector(`input[name="printer-assignment"][value="${printer.assignment || 'all'}"]`).checked = true;
+  document.getElementById('printer-form-usb-json').value = printer.usbDevice ? JSON.stringify(printer.usbDevice) : '';
+  document.getElementById('printer-form-ip').value = printer.ip || '';
+  document.getElementById('printer-form-port').value = printer.port || '9100';
+
+  if (printer.usbDevice) {
+    document.getElementById('printer-usb-device-box').style.display = 'block';
+    document.getElementById('printer-usb-device-name').textContent = printer.usbDevice.productName || 'جهاز مقترن';
+  } else {
+    document.getElementById('printer-usb-device-box').style.display = 'none';
+  }
+
+  document.getElementById('printer-modal-title').textContent = 'تعديل بيانات الطابعة';
+  updatePrinterTypeUI();
+  populatePrinterChecklists(printer);
+  populateWindowsPrinters(printer.windowsDeviceName || '');
+  openModal('modal-printer');
+  document.getElementById('printer-form-name').focus();
+}
+
+async function submitPrinterForm() {
+  const id = document.getElementById('printer-form-id').value;
+  const name = document.getElementById('printer-form-name').value.trim();
+  const type = document.querySelector('input[name="printer-type"]:checked').value;
+  const connection = document.querySelector('input[name="printer-connection"]:checked').value;
+  const copies = parseInt(document.getElementById('printer-form-copies').value) || 1;
+  const assignment = document.querySelector('input[name="printer-assignment"]:checked')?.value || 'all';
+
+  if (!name) {
+    alert('يرجى إدخال اسم الطابعة.');
+    return;
+  }
+
+  const usbJson = document.getElementById('printer-form-usb-json').value;
+  if (connection === 'usb' && !usbJson) {
+    alert('طريقة الطباعة USB تتطلب ربط الطابعة أولاً. اضغط "ربط طابعة USB" في شاشة الإعدادات لاختيار الجهاز.');
+    return;
+  }
+
+  const ip = document.getElementById('printer-form-ip').value.trim();
+  if (connection === 'network' && !ip) {
+    alert('يرجى إدخال عنوان IP للطابعة على الشبكة.');
+    return;
+  }
+
+  const windowsDeviceName = document.getElementById('printer-form-windows-device').value;
+  if (connection === 'windows' && !windowsDeviceName) {
+    alert('يرجى اختيار الطابعة المثبتة في Windows. هذا الخيار متاح فقط في نسخة التطبيق (exe).');
+    return;
+  }
+
+  const categoryIds = Array.from(document.querySelectorAll('#printer-categories-checkboxes input[type="checkbox"]:checked')).map(cb => cb.value);
+  const productIds = Array.from(document.querySelectorAll('#printer-products-checkboxes input[type="checkbox"]:checked')).map(cb => cb.value);
+
+  const payload = {
+    name,
+    type,
+    connection,
+    copies,
+    assignment,
+    active: true,
+    categoryIds: assignment === 'categories' ? categoryIds : [],
+    productIds: assignment === 'products' ? productIds : []
+  };
+  if (connection === 'usb') payload.usbDevice = JSON.parse(usbJson);
+  if (connection === 'network') {
+    payload.ip = ip;
+    payload.port = parseInt(document.getElementById('printer-form-port').value) || 9100;
+  }
+  if (connection === 'windows') {
+    payload.windowsDeviceName = windowsDeviceName;
+  }
+  if (id) {
+    payload.id = id;
+    const existing = (state.printers || []).find(p => p.id === id);
+    if (existing) payload.active = existing.active;
+  }
+
+  await state.db.savePrinter(payload);
+  closeModal('modal-printer');
+  await refreshStateData({ printers: true });
+  renderPrintersList();
+  alert('تم حفظ الطابعة بنجاح.');
+}
+
+async function deletePrinter(id) {
+  const printer = (state.printers || []).find(p => p.id === id);
+  if (!printer) return;
+  if (!confirm(`هل أنت متأكد من حذف الطابعة "${printer.name}"؟`)) return;
+  await state.db.deletePrinter(id);
+  await refreshStateData({ printers: true });
+  renderPrintersList();
+}
+
+async function togglePrinterActive(id) {
+  const printer = (state.printers || []).find(p => p.id === id);
+  if (!printer) return;
+  printer.active = !printer.active;
+  await state.db.savePrinter(printer);
+  await refreshStateData({ printers: true });
+  renderPrintersList();
+}
+
+async function testPrintPrinter(id) {
+  const printer = (state.printers || []).find(p => p.id === id);
+  if (!printer) return;
+  const lines = [
+    { t: 'Bistro POS', c: true, b: true, s: true },
+    { t: 'طباعة تجريبية', c: true, b: true },
+    { t: `الطابعة: ${printer.name}`, c: true },
+    { t: new Date().toLocaleString('ar-SY'), c: true },
+    { t: 'إذا ظهرت هذه الرسالة فالطابعة تعمل بشكل صحيح', c: true }
+  ];
+  const html = `
+    <div class="ticket-header">
+      <h2>Bistro POS</h2>
+      <h3 style="margin:4px 0;">طباعة تجريبية</h3>
+      <div style="display:flex; justify-content:center;">${escapeHtml(printer.name)}</div>
+      <div style="display:flex; justify-content:center;">${new Date().toLocaleString('ar-SY')}</div>
+    </div>
+    <div class="divider"></div>
+    <div class="footer">إذا ظهرت هذه الرسالة فكل شيء يعمل بشكل صحيح.</div>`;
+  try {
+    await printManager._routeLines(printer, lines, `طابعة تجريبية: ${printer.name}`, html);
+    alert('تم إرسال الطباعة التجريبية إلى الطابعة بنجاح.');
+  } catch (err) {
+    console.error('Test print failed:', err);
+    alert('فشلت الطباعة التجريبية: ' + (err && err.message ? err.message : err));
+  }
+}
+
+/**
+ * Saves the print bridge server URL (global setting).
+ */
+async function savePrintBridgeUrl() {
+  if (isElectron) {
+    alert('في نسخة التطبيق (exe) لا حاجة لسيرفر وسيط — الطباعة تتم مباشرة.');
+    return;
+  }
+  const input = document.getElementById('settings-print-bridge-url');
+  const value = (input ? input.value : '').trim();
+  if (!value) {
+    alert('يرجى إدخال عنوان سيرفر الطباعة، مثال: http://192.168.1.50:6333');
+    return;
+  }
+  try {
+    await state.db.put('settings', { id: 'print_bridge_url', value });
+    state.printBridgeUrl = value;
+    alert('تم حفظ عنوان سيرفر الطباعة بنجاح.');
+  } catch (err) {
+    console.error('Failed to save print bridge URL:', err);
+    alert('حدث خطأ أثناء الحفظ: ' + (err && err.message ? err.message : err));
+  }
+}
+
+/**
+ * Sends a health check to the print bridge server.
+ */
+async function testPrintBridge() {
+  if (isElectron) {
+    alert('في نسخة التطبيق (exe) لا حاجة لسيرفر وسيط — الطباعة عبر الشبكة تتم مباشرة من التطبيق.');
+    return;
+  }
+  const input = document.getElementById('settings-print-bridge-url');
+  const bridge = (input ? input.value : '').trim().replace(/\/+$/, '');
+  if (!bridge) {
+    alert('أدخل عنوان سيرفر الطباعة أولاً.');
+    return;
+  }
+  try {
+    const res = await fetch(bridge + '/health', { method: 'GET' }).catch(() => null);
+    if (!res || !res.ok) throw new Error('HTTP ' + (res ? res.status : 'تعذر الاتصال'));
+    const data = await res.json().catch(() => ({}));
+    if (data.ok) {
+      alert('السيرفر الوسيط يعمل بنجاح. جاهز لاستقبال أوامر الطباعة.');
+    } else {
+      throw new Error('استجابة غير متوقعة');
+    }
+  } catch (err) {
+    console.error('Print bridge health check failed:', err);
+    alert('فشل الاتصال بسيرفر الطباعة الوسيط.\nتأكد من تشغيله على جهاز الكاشير: node print-server.js\n' + (err && err.message ? err.message : ''));
+  }
+}
+
+// Expose printer functions globally
+window.printKitchenTicketsManual = printKitchenTicketsManual;
+window.printKitchenAuto = printKitchenAuto;
+window.printReceiptToMainPrinters = printReceiptToMainPrinters;
+window.renderPrintersList = renderPrintersList;
+window.openAddPrinterModal = openAddPrinterModal;
+window.openEditPrinterModal = openEditPrinterModal;
+window.submitPrinterForm = submitPrinterForm;
+window.deletePrinter = deletePrinter;
+window.togglePrinterActive = togglePrinterActive;
+window.testPrintPrinter = testPrintPrinter;
+window.pairUsbPrinter = pairUsbPrinter;
+window.updatePrinterTypeUI = updatePrinterTypeUI;
+window.updatePrinterAssignmentUI = updatePrinterAssignmentUI;
+window.savePrintBridgeUrl = savePrintBridgeUrl;
+window.testPrintBridge = testPrintBridge;
+window.updatePrinterAssignmentUI = updatePrinterAssignmentUI;

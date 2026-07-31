@@ -1,0 +1,48 @@
+{
+  "name": "bistro-pos",
+  "productName": "Restaurant",
+  "version": "1.0.4",
+  "description": "Restaurant",
+  "main": "electron/main.js",
+  "author": "DotTech - Salem Makoukji",
+  "license": "DotTech - Salem Makoukji",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win",
+    "dist:dir": "electron-builder --win --dir"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.bistro.pos",
+    "productName": "Restaurant",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**",
+      "index.html",
+      "style.css",
+      "manifest.json",
+      "service-worker.js",
+      "app.js",
+      "database.js",
+      "print-server.js",
+      "assets/**"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
+    }
+  },
+  "dependencies": {
+    "electron-pos-printer": "^1.4.0"
+  }
+}

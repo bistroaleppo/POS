@@ -1680,6 +1680,9 @@ input, select, textarea, button {
   box-shadow: var(--shadow-lg);
   width: 90%;
   max-width: 480px;
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   transform: translateY(15px);
   transition: var(--transition);
@@ -1710,6 +1713,7 @@ input, select, textarea, button {
 
 .modal-body {
   padding: 24px;
+  overflow-y: auto;
 }
 
 .modal-footer {
