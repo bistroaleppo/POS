@@ -54,6 +54,14 @@ class BistroDatabase {
           }
         }
 
+        try {
+          firebase.firestore().settings({
+            cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
+          });
+        } catch (sErr) {
+          // ignore if settings already applied
+        }
+
         this.firestore = firebase.firestore();
         console.log('Successfully connected to Firebase Firestore سحابي!');
         resolve(true);
@@ -62,6 +70,17 @@ class BistroDatabase {
         resolve(false);
       }
     });
+  }
+
+  /**
+   * Helper function to race a network promise against a fast timeout (default 1500ms).
+   */
+  _withTimeout(promise, ms = 1500) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Network timeout')), ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
   }
 
   /**
@@ -109,7 +128,7 @@ class BistroDatabase {
 
     if (this.firestore) {
       try {
-        const catSnapshot = await this.firestore.collection('categories').limit(1).get();
+        const catSnapshot = await this._withTimeout(this.firestore.collection('categories').limit(1).get(), 2000);
         if (catSnapshot.empty) {
           console.log('Cloud Firestore is empty! Seeding default menu data...');
           const batch = this.firestore.batch();
@@ -127,8 +146,8 @@ class BistroDatabase {
         }
         return true;
       } catch (err) {
-        console.error('Error seeding Firestore database:', err);
-        return false;
+        console.warn('Skipping seed check due to offline/timeout status:', err.message || err);
+        return true;
       }
     }
     return false;
@@ -143,8 +162,7 @@ class BistroDatabase {
         return;
       }
 
-      // If forceServer is true (e.g. after a save operation), skip cache entirely
-      // to guarantee the freshly written data is returned immediately.
+      // If forceServer is not explicitly requested, try local cache first for 0ms latency
       if (!forceServer) {
         try {
           const snapshot = await this.firestore.collection(storeName).get({ source: 'cache' });
@@ -153,26 +171,27 @@ class BistroDatabase {
             data.push({ id: doc.id, ...doc.data() });
           });
 
+          // Only resolve cache immediately if it contains records. If empty, fall through to server/seed
           if (data.length > 0) {
             resolve(data);
-            // Silently update cache in background
+            // Silently trigger background fetch from server to refresh cache
             this.firestore.collection(storeName).get({ source: 'server' }).catch(() => {});
             return;
           }
         } catch (cacheError) {
-          // Cache empty or unavailable, fall through to server fetch
+          // Cache empty or unavailable, proceed to protected server fetch
         }
       }
 
       try {
-        const snapshot = await this.firestore.collection(storeName).get({ source: 'server' });
+        const snapshot = await this._withTimeout(this.firestore.collection(storeName).get({ source: 'server' }), 1500);
         const data = [];
         snapshot.forEach(doc => {
           data.push({ id: doc.id, ...doc.data() });
         });
         resolve(data);
       } catch (error) {
-        console.error(`Firebase error loading store ${storeName}:`, error);
+        console.warn(`Firebase store ${storeName} server load timed out or offline, returning empty fallback:`, error.message || error);
         resolve([]);
       }
     });
@@ -199,14 +218,14 @@ class BistroDatabase {
       }
 
       try {
-        const doc = await this.firestore.collection(storeName).doc(String(key)).get();
-        if (doc.exists) {
+        const doc = await this._withTimeout(this.firestore.collection(storeName).doc(String(key)).get(), 1500);
+        if (doc && doc.exists) {
           resolve({ id: doc.id, ...doc.data() });
         } else {
           resolve(null);
         }
       } catch (error) {
-        console.error(`Firebase error loading key ${key} from store ${storeName}:`, error);
+        console.warn(`Firebase key ${key} load timed out or offline:`, error.message || error);
         resolve(null);
       }
     });
@@ -290,7 +309,17 @@ class BistroDatabase {
 
   // 1. Categories CRUD
   async getCategories() {
-    return this.getAll('categories');
+    const res = await this.getAll('categories');
+    if (!res || res.length === 0) {
+      return [
+        { id: 'cat-1', name: 'الشوربات والمقبلات', sortOrder: 0 },
+        { id: 'cat-2', name: 'الأطباق الرئيسية', sortOrder: 1 },
+        { id: 'cat-3', name: 'الحلويات', sortOrder: 2 },
+        { id: 'cat-4', name: 'المشروبات الباردة', sortOrder: 3 },
+        { id: 'cat-5', name: 'المشروبات الساخنة', sortOrder: 4 }
+      ];
+    }
+    return res;
   }
 
   async saveCategory(category) {
@@ -312,7 +341,28 @@ class BistroDatabase {
 
   // 2. Products CRUD
   async getProducts() {
-    return this.getAll('products');
+    const res = await this.getAll('products');
+    if (!res || res.length === 0) {
+      return [
+        { id: 'prod-1', name: 'شوربة الفطر البري بالكريمة', price: 25000, categoryId: 'cat-1', color: '#d4af37' },
+        { id: 'prod-2', name: 'سلطة السيزر بالدجاج المشوي', price: 32000, categoryId: 'cat-1', color: '#2ecc71' },
+        { id: 'prod-3', name: 'بطاطا حارة مقرمشة بالأعشاب', price: 18000, categoryId: 'cat-1', color: '#e67e22' },
+        { id: 'prod-4', name: 'ستيك ريب آي مع سوس الفلفل الأسود', price: 95000, categoryId: 'cat-2', color: '#c0392b' },
+        { id: 'prod-5', name: 'سلمون مشوي بصلصة الليمون والشبت', price: 85000, categoryId: 'cat-2', color: '#16a085' },
+        { id: 'prod-6', name: 'باستا الفريدو بالدجاج والفطر', price: 45000, categoryId: 'cat-2', color: '#f1c40f' },
+        { id: 'prod-7', name: 'برجر لحم فاجر بخبز البريوش والجبن', price: 38000, categoryId: 'cat-2', color: '#d35400' },
+        { id: 'prod-8', name: 'كعكة الشوكولاتة الذائبة (لافا كيك)', price: 28000, categoryId: 'cat-3', color: '#8e44ad' },
+        { id: 'prod-9', name: 'تشيز كيك الفراولة النيويوركي', price: 26000, categoryId: 'cat-3', color: '#e84393' },
+        { id: 'prod-10', name: 'تيراميسو إيطالي كلاسيكي', price: 24000, categoryId: 'cat-3', color: '#7f8c8d' },
+        { id: 'prod-11', name: 'عصير برتقال طبيعي طازج', price: 15000, categoryId: 'cat-4', color: '#f39c12' },
+        { id: 'prod-12', name: 'موخيتو الفراولة والنعناع المنعش', price: 18000, categoryId: 'cat-4', color: '#e84393' },
+        { id: 'prod-13', name: 'مياه معدنية فوارة مستوردة', price: 8000, categoryId: 'cat-4', color: '#3498db' },
+        { id: 'prod-14', name: 'قهوة إسبريسو مزدوجة', price: 12000, categoryId: 'cat-5', color: '#6d4c41' },
+        { id: 'prod-15', name: 'كابتشينو برغوة مخملية', price: 16000, categoryId: 'cat-5', color: '#8d6e63' },
+        { id: 'prod-16', name: 'شاي أخضر بالياسمين العضوي', price: 10000, categoryId: 'cat-5', color: '#a1887f' }
+      ];
+    }
+    return res;
   }
 
   async saveProduct(product) {
@@ -329,7 +379,20 @@ class BistroDatabase {
 
   // 3. Tables CRUD
   async getTables() {
-    return this.getAll('tables');
+    const res = await this.getAll('tables');
+    if (!res || res.length === 0) {
+      return [
+        { id: 'table-1', number: '1', capacity: 2, status: 'available' },
+        { id: 'table-2', number: '2', capacity: 4, status: 'available' },
+        { id: 'table-3', number: '3', capacity: 4, status: 'available' },
+        { id: 'table-4', number: '4', capacity: 6, status: 'available' },
+        { id: 'table-5', number: '5', capacity: 2, status: 'available' },
+        { id: 'table-6', number: '6', capacity: 8, status: 'available' },
+        { id: 'table-7', number: '7', capacity: 4, status: 'available' },
+        { id: 'table-8', number: '8', capacity: 6, status: 'available' }
+      ];
+    }
+    return res;
   }
 
   async saveTable(table) {

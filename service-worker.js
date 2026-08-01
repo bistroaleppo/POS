@@ -1,4 +1,4 @@
-const CACHE_NAME = 'Restaurant-pos-v1';
+const CACHE_NAME = 'bistro-pos-v1.0.4';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -19,6 +19,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
+        console.log('Service Worker: Caching App Shell static assets');
         return cache.addAll(ASSETS_TO_CACHE);
       })
       .then(() => self.skipWaiting())
@@ -31,6 +32,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
+            console.log('Service Worker: Purging outdated cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -40,10 +42,41 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Try network first, then fall back to cache
+  // Only intercept HTTP/HTTPS GET requests
+  if (event.request.method !== 'GET') return;
+
+  const requestUrl = event.request.url;
+
+  // Let Firebase API requests bypass Service Worker caching directly to Firebase SDK
+  if (
+    requestUrl.includes('firestore.googleapis.com') ||
+    requestUrl.includes('identitytoolkit.googleapis.com') ||
+    requestUrl.includes('securetoken.googleapis.com')
+  ) {
+    return;
+  }
+
+  // Cache-First with Stale-While-Revalidate Strategy for instant 0ms app rendering
   event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request);
+    caches.match(event.request).then((cachedResponse) => {
+      const fetchPromise = fetch(event.request)
+        .then((networkResponse) => {
+          if (
+            networkResponse &&
+            networkResponse.status === 200 &&
+            networkResponse.type === 'basic'
+          ) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => cachedResponse);
+
+      // Serve from cache immediately if present, otherwise fetch from network
+      return cachedResponse || fetchPromise;
     })
   );
 });

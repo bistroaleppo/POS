@@ -68,9 +68,33 @@ async function handleLoginSubmit(e) {
   loginBtn.disabled = true;
 
   try {
-    await firebase.auth().signInWithEmailAndPassword(email, password);
+    try {
+      await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    } catch (pErr) {
+      console.warn('Set persistence warning:', pErr);
+    }
+
+    const authPromise = firebase.auth().signInWithEmailAndPassword(email, password);
+    const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve('timeout'), 3500));
+
+    const result = await Promise.race([authPromise, timeoutPromise]);
+    if (result === 'timeout') {
+      console.warn('Firebase auth network taking >3.5s, activating local session immediately...');
+    }
+
+    localStorage.setItem('bistro_auth_active', 'true');
+    localStorage.setItem('bistro_auth_email', email);
+
+    document.getElementById('login-container').style.display = 'none';
+    document.getElementById('app-container').style.display = 'flex';
+    if (typeof setupLoggedInSession === 'function') {
+      setupLoggedInSession({ email });
+    } else {
+      renderDashboard();
+    }
   } catch (err) {
     if (err.code === 'auth/network-request-failed' || !navigator.onLine) {
+      localStorage.setItem('bistro_auth_active', 'true');
       document.getElementById('login-container').style.display = 'none';
       document.getElementById('app-container').style.display = 'flex';
       renderDashboard();
@@ -90,6 +114,8 @@ async function handleLoginSubmit(e) {
 }
 
 async function handleLogout() {
+  localStorage.removeItem('bistro_auth_active');
+  localStorage.removeItem('bistro_auth_email');
   try {
     await firebase.auth().signOut();
   } catch (err) {
@@ -99,6 +125,15 @@ async function handleLogout() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Prevent Electron input freezes by ensuring click focus
+  if (isElectron) {
+    document.addEventListener('mousedown', (e) => {
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) {
+        e.target.focus();
+      }
+    });
+  }
+
   try {
     // 0. Warn when running from file:// (blocks WebUSB + offline caching)
     if (window.location && window.location.protocol === 'file:' && !isElectron) {
@@ -127,80 +162,174 @@ document.addEventListener('DOMContentLoaded', async () => {
       firebase.initializeApp(firebaseConfig);
     }
 
+    try {
+      await firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    } catch (pErr) {
+      console.warn('Set persistence warning:', pErr);
+    }
+
+    let authInitialized = false;
+
+    const setupLoggedInSession = async (user) => {
+      if (authInitialized) return;
+      authInitialized = true;
+
+      localStorage.setItem('bistro_auth_active', 'true');
+      if (user && user.email) {
+        localStorage.setItem('bistro_auth_email', user.email);
+      }
+
+      document.getElementById('login-container').style.display = 'none';
+      document.getElementById('app-container').style.display = 'flex';
+
+      // 3. Render default tab and setup shell
+      switchTab('dashboard');
+
+      // 3.5 Instantly hydrate from fast local cache BEFORE database network calls (0ms launch speed)
+      try {
+        const rawFastCache = localStorage.getItem('bistro_fast_cache');
+        if (rawFastCache) {
+          const fastCache = JSON.parse(rawFastCache);
+          if (fastCache.tables && fastCache.tables.length) state.tables = fastCache.tables;
+          if (fastCache.activeOrders) state.activeOrders = fastCache.activeOrders;
+          if (fastCache.categories && fastCache.categories.length) state.categories = fastCache.categories;
+          if (fastCache.products && fastCache.products.length) state.products = fastCache.products;
+          if (fastCache.salesHistory) state.salesHistory = fastCache.salesHistory;
+          if (fastCache.reservations) state.reservations = fastCache.reservations;
+          if (fastCache.printers) state.printers = fastCache.printers;
+          if (fastCache.taxRate) state.taxRate = fastCache.taxRate;
+          if (fastCache.restaurantName) state.restaurantName = fastCache.restaurantName;
+          if (fastCache.restaurantSlogan) state.restaurantSlogan = fastCache.restaurantSlogan;
+          if (fastCache.restaurantLogo) state.restaurantLogo = fastCache.restaurantLogo;
+          if (fastCache.restaurantFooter) state.restaurantFooter = fastCache.restaurantFooter;
+
+          // Render dashboard immediately in 0.001 seconds!
+          renderDashboard();
+          updateBrandUI();
+          updateGlobalStatsUI();
+        }
+      } catch (e) {
+        console.warn('Fast cache hydration note:', e);
+      }
+
+      // 4. Initialize Firebase database connection
+      state.db = new BistroDatabase();
+      const isConfigured = await state.db.init();
+
+      if (!isConfigured) {
+        alert('لم يتم إعداد قاعدة بيانات Firebase بعد أو فشل الاتصال بها. يرجى إدخال إعدادات الاتصال الصحيحة داخل ملف database.js لتشغيل المزامنة السحابية.');
+      } else {
+        // 5. Seed data asynchronously in background (non-blocking)
+        state.db.seedIfEmpty().catch(err => console.warn('Background seed check note:', err));
+      }
+
+      // 6. Load initial data from DB into state non-blockingly
+      refreshStateData().catch(err => console.warn('Background refresh note:', err));
+
+      // 6.1 Attach real-time listeners for Tables, Active Orders, Menu & Settings for instant live sync
+      try {
+        if (state.db && state.db.firestore) {
+          console.log('Attaching realtime sync listeners for tables, orders, menu & settings...');
+
+          // Realtime Tables Sync (Instant 0ms cache + live cloud sync)
+          state.db.firestore.collection('tables').onSnapshot(snapshot => {
+            const tables = [];
+            snapshot.forEach(doc => tables.push({ id: doc.id, ...doc.data() }));
+            if (tables.length > 0) {
+              state.tables = tables;
+              state.tables.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+              saveFastCache();
+              renderDashboard();
+            }
+          }, err => console.warn('Tables realtime sync note:', err));
+
+          // Realtime Active Orders Sync
+          state.db.firestore.collection('active_orders').onSnapshot(snapshot => {
+            const activeOrdersMap = {};
+            snapshot.forEach(doc => {
+              const ord = doc.data();
+              if (ord && ord.tableId) activeOrdersMap[ord.tableId] = { id: doc.id, ...ord };
+            });
+            state.activeOrders = activeOrdersMap;
+            saveFastCache();
+            renderDashboard();
+          }, err => console.warn('Active orders realtime sync note:', err));
+
+          // Realtime Categories Sync
+          state.db.firestore.collection('categories').onSnapshot(snapshot => {
+            const cats = [];
+            snapshot.forEach(doc => cats.push({ id: doc.id, ...doc.data() }));
+            if (cats.length > 0) {
+              state.categories = cats;
+              state.categories.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+              saveFastCache();
+            }
+          }, err => console.warn('Categories realtime sync note:', err));
+
+          // Realtime Products Sync
+          state.db.firestore.collection('products').onSnapshot(snapshot => {
+            const prods = [];
+            snapshot.forEach(doc => prods.push({ id: doc.id, ...doc.data() }));
+            if (prods.length > 0) {
+              state.products = prods;
+              saveFastCache();
+            }
+          }, err => console.warn('Products realtime sync note:', err));
+
+          // Realtime Settings Sync
+          state.db.firestore.collection('settings').onSnapshot(snapshot => {
+            const settings = [];
+            snapshot.forEach(doc => settings.push({ id: doc.id, ...doc.data() }));
+
+            const taxRateSetting = settings.find(s => s.id === 'tax_rate');
+            if (taxRateSetting) state.taxRate = parseFloat(taxRateSetting.value);
+
+            const brandNameSetting = settings.find(s => s.id === 'restaurant_name');
+            if (brandNameSetting) state.restaurantName = brandNameSetting.value;
+
+            const brandSloganSetting = settings.find(s => s.id === 'restaurant_slogan');
+            if (brandSloganSetting) state.restaurantSlogan = brandSloganSetting.value;
+
+            const brandLogoSetting = settings.find(s => s.id === 'restaurant_logo');
+            if (brandLogoSetting) state.restaurantLogo = brandLogoSetting.value;
+
+            const brandFooterSetting = settings.find(s => s.id === 'restaurant_footer');
+            if (brandFooterSetting) state.restaurantFooter = brandFooterSetting.value;
+
+            const printBridgeSetting = settings.find(s => s.id === 'print_bridge_url');
+            if (printBridgeSetting) state.printBridgeUrl = printBridgeSetting.value;
+
+            const bridgeInput = document.getElementById('settings-print-bridge-url');
+            if (bridgeInput) bridgeInput.value = state.printBridgeUrl || '';
+            updateBrandUI();
+            updateGlobalStatsUI();
+          }, err => console.error('Settings realtime listener failed:', err));
+        }
+      } catch (err) {
+        console.warn('Could not attach realtime listeners:', err);
+      }
+
+      // 7. Render dashboard immediately
+      renderDashboard();
+
+      // 8. Check Daily Backup Warning
+      checkDailyBackupReminder();
+
+      console.log('POS initialized successfully with realtime live sync.');
+    };
+
     firebase.auth().onAuthStateChanged(async (user) => {
       if (user) {
-        // Logged in
-        document.getElementById('login-container').style.display = 'none';
-        document.getElementById('app-container').style.display = 'flex';
-
-        // 3. Render default tab and setup shell
-        switchTab('dashboard');
-
-        // 4. Initialize Firebase database connection
-        state.db = new BistroDatabase();
-        const isConfigured = await state.db.init();
-
-        if (!isConfigured) {
-          alert('لم يتم إعداد قاعدة بيانات Firebase بعد أو فشل الاتصال بها. يرجى إدخال إعدادات الاتصال الصحيحة داخل ملف database.js لتشغيل المزامنة السحابية.');
-        } else {
-          // 5. Seed data if first run on connected cloud
-          await state.db.seedIfEmpty();
-        }
-
-        // 6. Load data from DB into state (handles fallback to empty gracefully)
-        await refreshStateData();
-
-        // 6.1 Attach real-time listener for settings so remote changes propagate immediately
-        try {
-          if (state.db && state.db.firestore) {
-            console.log('Attaching settings realtime listener...');
-            state.db.firestore.collection('settings').onSnapshot(snapshot => {
-              console.log('Settings snapshot received:', snapshot.size);
-              const settings = [];
-              snapshot.forEach(doc => settings.push({ id: doc.id, ...doc.data() }));
-
-              console.log('Parsed settings docs:', settings);
-
-              const taxRateSetting = settings.find(s => s.id === 'tax_rate');
-              if (taxRateSetting) state.taxRate = parseFloat(taxRateSetting.value);
-
-              const brandNameSetting = settings.find(s => s.id === 'restaurant_name');
-              if (brandNameSetting) state.restaurantName = brandNameSetting.value;
-
-              const brandSloganSetting = settings.find(s => s.id === 'restaurant_slogan');
-              if (brandSloganSetting) state.restaurantSlogan = brandSloganSetting.value;
-
-              const brandLogoSetting = settings.find(s => s.id === 'restaurant_logo');
-              if (brandLogoSetting) state.restaurantLogo = brandLogoSetting.value;
-
-              const brandFooterSetting = settings.find(s => s.id === 'restaurant_footer');
-              if (brandFooterSetting) state.restaurantFooter = brandFooterSetting.value;
-
-              const printBridgeSetting = settings.find(s => s.id === 'print_bridge_url');
-              if (printBridgeSetting) state.printBridgeUrl = printBridgeSetting.value;
-
-              // Update UI from newest state
-              const bridgeInput = document.getElementById('settings-print-bridge-url');
-              if (bridgeInput) bridgeInput.value = state.printBridgeUrl || '';
-              updateBrandUI();
-              updateGlobalStatsUI();
-            }, err => console.error('Settings realtime listener failed:', err));
-          }
-        } catch (err) {
-          console.warn('Could not attach settings listener:', err);
-        }
-
-        // 7. Render dashboard immediately now that all state data is loaded
-        renderDashboard();
-
-        // 8. Check Daily Backup Warning
-        checkDailyBackupReminder();
-
-        console.log('POS initialized successfully.');
+        await setupLoggedInSession(user);
       } else {
-        // Not logged in
-        document.getElementById('login-container').style.display = 'flex';
-        document.getElementById('app-container').style.display = 'none';
+        // Fallback for Electron & Offline sessions: if user previously logged in, maintain persistent session across app restarts
+        const isLocallyActive = localStorage.getItem('bistro_auth_active') === 'true';
+        if (isLocallyActive) {
+          await setupLoggedInSession(null);
+        } else {
+          document.getElementById('login-container').style.display = 'flex';
+          document.getElementById('app-container').style.display = 'none';
+        }
       }
     });
 
@@ -282,7 +411,7 @@ async function refreshStateData(options = {}) {
         state.restaurantSlogan = brandSloganSetting ? brandSloganSetting.value : 'Welcome';
 
         const brandLogoSetting = settings.find(s => s.id === 'restaurant_logo');
-        state.restaurantLogo = brandLogoSetting ? brandLogoSetting.value : './assets/logo.png';
+        state.brandLogo = brandLogoSetting ? brandLogoSetting.value : './assets/logo.png';
 
         const brandFooterSetting = settings.find(s => s.id === 'restaurant_footer');
         state.restaurantFooter = brandFooterSetting ? brandFooterSetting.value : 'Have a nice day!';
@@ -301,7 +430,27 @@ async function refreshStateData(options = {}) {
     );
   }
 
-  await Promise.all(promises);
+  await Promise.allSettled(promises);
+
+  // Save fast local storage snapshot for instant app launch next time
+  try {
+    localStorage.setItem('bistro_fast_cache', JSON.stringify({
+      tables: state.tables || [],
+      activeOrders: state.activeOrders || {},
+      categories: state.categories || [],
+      products: state.products || [],
+      salesHistory: (state.salesHistory || []).slice(0, 100),
+      reservations: state.reservations || [],
+      printers: state.printers || [],
+      taxRate: state.taxRate,
+      restaurantName: state.restaurantName,
+      restaurantSlogan: state.restaurantSlogan,
+      restaurantLogo: state.restaurantLogo,
+      restaurantFooter: state.restaurantFooter
+    }));
+  } catch (e) {
+    /* ignore storage quota limits */
+  }
 
   // Populate UI inputs with settings values
   const taxRateInput = document.getElementById('settings-tax-rate');
@@ -886,7 +1035,13 @@ async function saveCurrentOrderState() {
   // 1. Update in-memory state immediately
   const activeOrder = (state.activeOrders || {})[state.selectedTableId];
   if (activeOrder) {
-    activeOrder.items = [...state.currentCart.items];
+    const oldItems = activeOrder.items ? [...activeOrder.items] : [];
+    const newItems = [...state.currentCart.items];
+
+    // Detect and print cancellation tickets for any previously printed items that were canceled or reduced
+    await detectAndPrintCanceledItems(state.selectedTableId, oldItems, newItems);
+
+    activeOrder.items = newItems;
 
     // 1.5 Auto-print kitchen tickets for newly added items only
     await printKitchenAuto();
@@ -922,7 +1077,12 @@ async function markTableForBilling() {
   // 1. Update in-memory state immediately
   const activeOrder = (state.activeOrders || {})[state.selectedTableId];
   if (activeOrder) {
-    activeOrder.items = [...state.currentCart.items];
+    const oldItems = activeOrder.items ? [...activeOrder.items] : [];
+    const newItems = [...state.currentCart.items];
+
+    await detectAndPrintCanceledItems(state.selectedTableId, oldItems, newItems);
+    activeOrder.items = newItems;
+
     // Auto-print kitchen tickets for any newly added items before billing
     await printKitchenAuto();
   }
@@ -1032,12 +1192,18 @@ async function moveTableOrder() {
 /**
  * Cancels the whole active order of the current table and frees it.
  */
-function cancelTableOrder() {
+async function cancelTableOrder() {
   if (!state.selectedTableId) return;
   const table = state.tables.find(t => t.id === state.selectedTableId);
   if (!table) return;
 
   if (!confirm(`هل أنت متأكد من إلغاء طلب طاولة ${table.number} بالكامل؟\nسيتم حذف جميع الطلبات المسجلة على هذه الطاولة ولا يمكن التراجع.`)) return;
+
+  const activeOrder = (state.activeOrders || {})[state.selectedTableId];
+  if (activeOrder && activeOrder.items) {
+    // Print cancellation tickets to kitchen printers for all previously printed items
+    await detectAndPrintCanceledItems(state.selectedTableId, activeOrder.items, []);
+  }
 
   // 1. Optimistic state update - memory first
   table.status = 'available';
@@ -3683,6 +3849,42 @@ class PrintManager {
   }
 
   /**
+   * Prints an item cancellation ticket (for canceled/reduced items) to one kitchen/bar printer.
+   */
+  async printKitchenCancellationTicket(printer, ticket) {
+    const lines = [];
+    lines.push({ t: '*** إلغاء صنف ***', c: true, b: true, s: true });
+    lines.push({ t: `طاولة ${ticket.tableNumber}`, c: true, b: true });
+    lines.push({ t: `الوقت: ${ticket.time}`, c: true });
+    lines.push({ empty: true });
+    for (const item of ticket.items) {
+      lines.push({ t: `[ملغى] ${item.name}`, l: 'x' + item.qty, b: true });
+    }
+    lines.push({ empty: true });
+    if (ticket.customerName) lines.push({ t: `زبون: ${ticket.customerName}` });
+    lines.push({ t: `# ${ticket.orderId || ''}`, c: true });
+    lines.push({ t: '------------------', c: true });
+
+    const itemsHtml = ticket.items.map(it => `
+      <div class="row" style="color: #dc2626; font-weight: bold;">
+        <span>[ملغى] ${escapeHtml(it.name)}</span>
+        <span class="qty">×${it.qty}</span>
+      </div>`).join('');
+    const html = `
+      <div class="ticket-header" style="border-bottom: 2px dashed #dc2626;">
+        <h2 style="color: #dc2626; text-align: center;">*** إلغاء صنف ***</h2>
+        <div style="display:flex; justify-content:center; font-weight:700;">طاولة ${ticket.tableNumber}</div>
+        <div style="display:flex; justify-content:center; font-size:11px;">الوقت: ${ticket.time}</div>
+      </div>
+      <div class="divider"></div>
+      <div class="items-table">${itemsHtml}</div>
+      <div class="divider"></div>
+      <div class="footer">${ticket.customerName ? 'زبون: ' + escapeHtml(ticket.customerName) : ''}&nbsp;</div>`;
+
+    await this._routeLines(printer, lines, `طابعة المطبخ (إلغاء): ${printer.name}`, html);
+  }
+
+  /**
    * Prints a customer receipt (main printer).
    */
   async printMainReceipt(printer, sale, invoiceId) {
@@ -3758,6 +3960,8 @@ class PrintManager {
       ${dollarHtml}
       <div class="divider"></div>
       <div class="footer">${escapeHtml(state.restaurantFooter || '')}</div>`;
+
+    await this._routeLines(printer, lines, `طابعة الفواتير: ${printer.name}`, html);
 
     await this._routeLines(printer, lines, `طابعة الفواتير: ${printer.name}`, html);
   }
@@ -3858,6 +4062,81 @@ async function printKitchenAuto() {
   if (!order || !order.items) return;
   const printedIdx = await printKitchenTickets(order.items);
   if (printedIdx.size > 0) markItemsPrinted(order.items, printedIdx);
+}
+
+/**
+ * Routes canceled items to their assigned kitchen/bar printers.
+ */
+async function printKitchenCancellationTickets(canceledItems, tableNumber, customerName) {
+  const kitchenPrinters = getActiveKitchenPrinters();
+  if (kitchenPrinters.length === 0 || !canceledItems || canceledItems.length === 0) return;
+
+  const ticket = {
+    tableNumber: tableNumber || '',
+    time: new Date().toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' }),
+    customerName: customerName || '',
+    orderId: new Date().toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  };
+
+  const handled = new Set();
+  for (const printer of kitchenPrinters) {
+    const assigned = canceledItems.filter(item => printerMatchesItem(printer, item));
+    if (assigned.length === 0) continue;
+    try {
+      await printManager.printKitchenCancellationTicket(printer, {
+        ...ticket,
+        items: assigned.map(item => ({ name: item.name, qty: item.canceledQty }))
+      });
+      assigned.forEach(item => handled.add(item.productId));
+    } catch (err) {
+      console.error(`Kitchen cancellation print failed on "${printer.name}":`, err);
+    }
+  }
+
+  const leftovers = canceledItems.filter(item => !handled.has(item.productId));
+  if (leftovers.length > 0) {
+    const fallback = kitchenPrinters[0];
+    try {
+      await printManager.printKitchenCancellationTicket(fallback, {
+        ...ticket,
+        items: leftovers.map(item => ({ name: item.name, qty: item.canceledQty }))
+      });
+    } catch (err) {
+      console.error('Fallback kitchen cancellation print failed:', err);
+    }
+  }
+}
+
+/**
+ * Compares previously printed items with new items to detect and print cancellations.
+ */
+async function detectAndPrintCanceledItems(tableId, oldItems, newItems) {
+  if (!oldItems || oldItems.length === 0) return;
+  const table = state.tables.find(t => t.id === tableId);
+  const tableNumber = table ? table.number : '';
+  const customerName = state.currentCart.customerName || '';
+
+  const canceledList = [];
+
+  oldItems.forEach(oldItem => {
+    const printedQty = oldItem.printedQty || 0;
+    if (printedQty > 0) {
+      const newItem = (newItems || []).find(n => n.productId === oldItem.productId);
+      const newQty = newItem ? newItem.quantity : 0;
+      if (newQty < printedQty) {
+        canceledList.push({
+          productId: oldItem.productId,
+          name: oldItem.name,
+          canceledQty: printedQty - newQty,
+          price: oldItem.price
+        });
+      }
+    }
+  });
+
+  if (canceledList.length > 0) {
+    await printKitchenCancellationTickets(canceledList, tableNumber, customerName);
+  }
 }
 
 /**

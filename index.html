@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bistro POS | نظام إدارة المطاعم الذكي</title>
+  <title>Restaurant POS</title>
   <link rel="icon" type="image/png" href="./assets/logo.png">
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="./manifest.json">
@@ -22,7 +22,7 @@
       </div>
 
       <div class="login-header">
-        <h1>Bistro POS</h1>
+        <h1>Restaurant POS</h1>
         <p>بوابة الكاشير الآمنة لإدارة المبيعات</p>
       </div>
 
@@ -124,7 +124,9 @@
           <div class="time-display" id="time-display">00:00:00</div>
           <div class="date-display" id="date-display">الخميس، 21 مايو</div>
         </div>
-        <button class="btn btn-logout" onclick="handleLogout()" style="margin-top: 15px; width: 100%; background: #ef4444; color: white; padding: 10px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600;">تسجيل الخروج</button>
+        <button class="btn btn-logout" onclick="handleLogout()"
+          style="margin-top: 15px; width: 100%; background: #ef4444; color: white; padding: 10px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600;">تسجيل
+          الخروج</button>
       </div>
     </aside>
 
@@ -377,11 +379,13 @@
                 </svg>
                 <h4>إدارة الطابعات (المطبخ والرئيسية)</h4>
               </div>
-              <p class="configs-subtitle">طابعات المطبخ والبار تطبع تذاكر الأوردر تلقائياً عند إضافة أصناف جديدة للطاولة،
+              <p class="configs-subtitle">طابعات المطبخ والبار تطبع تذاكر الأوردر تلقائياً عند إضافة أصناف جديدة
+                للطاولة،
                 والطابعة الرئيسية تطبع إيصال الفاتورة عند الدفع. طرق الربط: <b>شبكة IP</b> (تلقائي 100% عبر سيرفر
                 وسيط)، <b>USB مباشر</b> (Chrome/Edge على HTTPS)، أو <b>نافذة الطباعة</b>.</p>
 
-              <div id="print-bridge-settings-box" class="form-group" style="margin-top: 12px; padding: 12px; border: 1px solid var(--border-light); border-radius: 8px; background: rgba(0,0,0,0.02);">
+              <div id="print-bridge-settings-box" class="form-group"
+                style="margin-top: 12px; padding: 12px; border: 1px solid var(--border-light); border-radius: 8px; background: rgba(0,0,0,0.02);">
                 <label for="settings-print-bridge-url">عنوان سيرفر الطباعة الوسيط (للطباعة عبر الشبكة):</label>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
                   <input type="text" id="settings-print-bridge-url" class="form-control"
@@ -391,15 +395,18 @@
                   <button class="btn btn-secondary btn-xs" onclick="testPrintBridge()">فحص الاتصال</button>
                 </div>
                 <p style="font-size: 11px; color: var(--text-muted); margin: 6px 0 0;">شغّل السيرفر على جهاز الكاشير
-                  بالأمر: <code style="direction: ltr; unicode-bidi: embed; display: inline-block;">node print-server.js</code>،
+                  بالأمر: <code
+                    style="direction: ltr; unicode-bidi: embed; display: inline-block;">node print-server.js</code>،
                   ثم ضع عنوانه هنا. للطباعة عبر الشبكة اختر "شبكة IP" عند إضافة الطابعة وأدخل عنوانها على الشبكة.</p>
               </div>
-              <div id="print-bridge-electron-note" style="display: none; margin-top: 12px; padding: 10px 12px; border: 1px solid rgba(25,59,35,0.3); background: rgba(25,59,35,0.06); border-radius: 8px; font-size: 12px; color: #193B23;">
+              <div id="print-bridge-electron-note"
+                style="display: none; margin-top: 12px; padding: 10px 12px; border: 1px solid rgba(25,59,35,0.3); background: rgba(25,59,35,0.06); border-radius: 8px; font-size: 12px; color: #193B23;">
                 <b>نسخة التطبيق (exe):</b> الطباعة عبر الشبكة تتم مباشرة من التطبيق بدون سيرفر وسيط. أضف الطابعات بنوع
                 اتصال "شبكة IP" مع عنوانها، أو "ويندوز (صامتة)" لأي طابعة مثبتة في النظام.
               </div>
 
-              <div id="file-protocol-notice" style="display: none; margin-top: 12px; padding: 10px 12px; border: 1px solid rgba(212,175,55,0.4); background: rgba(212,175,55,0.08); border-radius: 8px; font-size: 12px; color: #7a5c00;">
+              <div id="file-protocol-notice"
+                style="display: none; margin-top: 12px; padding: 10px 12px; border: 1px solid rgba(212,175,55,0.4); background: rgba(212,175,55,0.08); border-radius: 8px; font-size: 12px; color: #7a5c00;">
                 <b>تنبيه:</b> أنت تشغّل النظام من ملف مباشر (file://). وضع عدم الاتصال (Offline) والربط المباشر USB
                 يتطلبان تشغيل النظام عبر خادم — استخدم <code dir="ltr">http://localhost</code> أو خدمة استضافة HTTPS.
               </div>
@@ -750,12 +757,24 @@
               </div>
 
               <div class="table-service-actions" style="display: flex; gap: 8px; margin-top: 8px;">
-                <button class="btn btn-secondary btn-sm" style="flex: 1; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="openMoveTableModal()">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9"/><polyline points="9 14 12 17 18 11"/><path d="M12 3v8l4-2"/></svg>
+                <button class="btn btn-secondary btn-sm"
+                  style="flex: 1; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 6px;"
+                  onclick="openMoveTableModal()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12a9 9 0 1 1-9-9" />
+                    <polyline points="9 14 12 17 18 11" />
+                    <path d="M12 3v8l4-2" />
+                  </svg>
                   نقل الطاولة
                 </button>
-                <button class="btn btn-danger-outline btn-sm" style="flex: 1; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="cancelTableOrder()">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                <button class="btn btn-danger-outline btn-sm"
+                  style="flex: 1; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 6px;"
+                  onclick="cancelTableOrder()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="15" y1="9" x2="9" y2="15" />
+                    <line x1="9" y1="9" x2="15" y2="15" />
+                  </svg>
                   إلغاء الطاولة
                 </button>
               </div>
@@ -1010,10 +1029,16 @@
               </div>
             </label>
           </div>
-          <div id="exchange-rate-container" style="display: none; background: rgba(0,0,0,0.03); padding: 12px; border-radius: 8px;">
-            <label for="exchange-rate-input" style="font-size: 13px; font-weight: bold; color: #193B23;">سعر الصرف الحالي (ل.س للدولار الواحد):</label>
-            <input type="number" id="exchange-rate-input" placeholder="مثال: 15000" class="form-control" style="width: 100%; margin-top: 5px; padding: 10px; border: 1px solid rgba(0,0,0,0.15); border-radius: 6px;" oninput="updateCheckoutDiscount()">
-            <div id="dollar-total-preview" style="margin-top: 10px; font-weight: bold; color: #10b981; font-size: 16px;">المبلغ المستحق بالدولار: $0.00</div>
+          <div id="exchange-rate-container"
+            style="display: none; background: rgba(0,0,0,0.03); padding: 12px; border-radius: 8px;">
+            <label for="exchange-rate-input" style="font-size: 13px; font-weight: bold; color: #193B23;">سعر الصرف
+              الحالي (ل.س للدولار الواحد):</label>
+            <input type="number" id="exchange-rate-input" placeholder="مثال: 15000" class="form-control"
+              style="width: 100%; margin-top: 5px; padding: 10px; border: 1px solid rgba(0,0,0,0.15); border-radius: 6px;"
+              oninput="updateCheckoutDiscount()">
+            <div id="dollar-total-preview"
+              style="margin-top: 10px; font-weight: bold; color: #10b981; font-size: 16px;">المبلغ المستحق بالدولار:
+              $0.00</div>
           </div>
         </div>
 
@@ -1158,9 +1183,12 @@
             الطباعة الوسيط (يُضبط عنوانه من إعدادات النظام). المنفذ الافتراضي للطابعات الحرارية هو 9100.</p>
         </div>
 
-        <div id="printer-usb-device-box" style="display: none; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;">
-          <div style="font-size: 13px; font-weight: 600; color: #193B23;" id="printer-usb-device-name">لا يوجد جهاز مقترن</div>
-          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">اضغط "ربط طابعة USB" من شاشة الإعدادات
+        <div id="printer-usb-device-box"
+          style="display: none; background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;">
+          <div style="font-size: 13px; font-weight: 600; color: #193B23;" id="printer-usb-device-name">لا يوجد جهاز
+            مقترن</div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">اضغط "ربط طابعة USB" من شاشة
+            الإعدادات
             قبل اختيار طريقة USB ليقترن الجهاز تلقائياً.</div>
         </div>
 
@@ -1168,9 +1196,9 @@
           <div class="form-group">
             <label for="printer-form-windows-device">اختر الطابعة المثبتة في Windows:</label>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              <select id="printer-form-windows-device" class="form-control"
-                style="flex: 1; min-width: 180px;"></select>
-              <button class="btn btn-secondary btn-xs" onclick="populateWindowsPrinters(document.getElementById('printer-form-windows-device').value)">تحديث</button>
+              <select id="printer-form-windows-device" class="form-control" style="flex: 1; min-width: 180px;"></select>
+              <button class="btn btn-secondary btn-xs"
+                onclick="populateWindowsPrinters(document.getElementById('printer-form-windows-device').value)">تحديث</button>
             </div>
             <p id="printer-windows-note" style="font-size: 11px; color: var(--text-muted); margin: 6px 0 0;">خيار
               "ويندوز (صامتة)" متاح فقط في نسخة التطبيق (exe) — يطبع بدون أي نوافذ على أي طابعة مثبتة في Windows (حتى
@@ -1189,7 +1217,8 @@
             <label>الأصناف التي تطبع على هذه الطابعة</label>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
               <label class="payment-method-card" style="flex: 1;">
-                <input type="radio" name="printer-assignment" value="all" checked onchange="updatePrinterAssignmentUI()">
+                <input type="radio" name="printer-assignment" value="all" checked
+                  onchange="updatePrinterAssignmentUI()">
                 <div class="card-box"><span style="font-weight: bold; font-size: 12px;">كل الأصناف</span></div>
               </label>
               <label class="payment-method-card" style="flex: 1;">

@@ -1,6 +1,6 @@
 'use strict';
 
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const { PosPrinter } = require('electron-pos-printer');
 const net = require('net');
 const path = require('path');
@@ -138,7 +138,8 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      spellcheck: false
     }
   });
 
@@ -150,6 +151,8 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Completely disable application menu bar so Alt / Alt+Shift doesn't hijack keyboard focus from inputs
+  Menu.setApplicationMenu(null);
   createWindow();
 
   app.on('activate', () => {

@@ -1,7 +1,7 @@
 {
   "name": "bistro-pos",
   "productName": "Restaurant",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Restaurant",
   "main": "electron/main.js",
   "author": "DotTech - Salem Makoukji",
@@ -13,8 +13,8 @@
     "dist:dir": "electron-builder --win --dir"
   },
   "devDependencies": {
-    "electron": "^33.0.0",
-    "electron-builder": "^25.1.8"
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3"
   },
   "build": {
     "appId": "com.bistro.pos",
