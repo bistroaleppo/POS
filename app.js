@@ -12,6 +12,11 @@ const state = {
   printers: [],
   activeOrders: {},    // In-memory cache of active orders keyed by tableId for instant dashboard rendering
 
+  // Deep snapshot (per table) of items as last SAVED/printed. Used to detect
+  // cancellations/reductions reliably even after the cart has been edited or
+  // the user switched tables and came back (protects the "before" state).
+  lastSavedItems: {},
+
   // Selections
   activeTab: 'dashboard',
   selectedTableId: null,
@@ -45,6 +50,32 @@ function formatCurrency(amount) {
   const val = Math.round(amount || 0);
   const newLira = val.toLocaleString('en-US');
   return `${newLira} ل.س`;
+}
+
+/**
+ * Saves a lightweight snapshot of essential app state to localStorage so the
+ * app can hydrate instantly (0ms) on next launch before network calls finish.
+ * Sales history is capped to the most recent 100 records to respect quota.
+ */
+function saveFastCache() {
+  try {
+    localStorage.setItem('bistro_fast_cache', JSON.stringify({
+      tables: state.tables || [],
+      activeOrders: state.activeOrders || {},
+      categories: state.categories || [],
+      products: state.products || [],
+      salesHistory: (state.salesHistory || []).slice(0, 100),
+      reservations: state.reservations || [],
+      printers: state.printers || [],
+      taxRate: state.taxRate,
+      restaurantName: state.restaurantName,
+      restaurantSlogan: state.restaurantSlogan,
+      restaurantLogo: state.restaurantLogo,
+      restaurantFooter: state.restaurantFooter
+    }));
+  } catch (e) {
+    console.warn('Fast cache save skipped (storage quota or unavailable):', e);
+  }
 }
 
 // ==========================================================================
@@ -378,7 +409,7 @@ async function refreshStateData(options = {}) {
   }
 
   if (options.sales || !state.salesHistory || state.salesHistory.length === 0) {
-    promises.push(state.db.getSalesHistory().then(res => state.salesHistory = res));
+    promises.push(state.db.getSalesHistory(true).then(res => state.salesHistory = res));
   }
 
   if (options.reservations || !state.reservations || state.reservations.length === 0) {
@@ -433,24 +464,7 @@ async function refreshStateData(options = {}) {
   await Promise.allSettled(promises);
 
   // Save fast local storage snapshot for instant app launch next time
-  try {
-    localStorage.setItem('bistro_fast_cache', JSON.stringify({
-      tables: state.tables || [],
-      activeOrders: state.activeOrders || {},
-      categories: state.categories || [],
-      products: state.products || [],
-      salesHistory: (state.salesHistory || []).slice(0, 100),
-      reservations: state.reservations || [],
-      printers: state.printers || [],
-      taxRate: state.taxRate,
-      restaurantName: state.restaurantName,
-      restaurantSlogan: state.restaurantSlogan,
-      restaurantLogo: state.restaurantLogo,
-      restaurantFooter: state.restaurantFooter
-    }));
-  } catch (e) {
-    /* ignore storage quota limits */
-  }
+  saveFastCache();
 
   // Populate UI inputs with settings values
   const taxRateInput = document.getElementById('settings-tax-rate');
@@ -543,10 +557,11 @@ async function switchTab(tabId) {
     case 'reports':
       tabTitle.textContent = 'الفواتير والتقارير المالية';
       tabDesc.textContent = 'مراجعة المبيعات الإجمالية اليومية، واستعراض فواتير الدفع المكتملة.';
-      // Only fetch from DB on first visit; after a checkout the sale is already in state.salesHistory
-      if (!state.salesHistory || state.salesHistory.length === 0) {
-        await refreshStateData({ sales: true });
-      }
+      // Always refresh sales from the server so reports show the COMPLETE dataset
+      // (never trust a stale/partial cache, e.g. the 100-sale fast-launch snapshot).
+      const repTbody = document.getElementById('sales-history-list');
+      if (repTbody) repTbody.innerHTML = `<tr><td colspan="6" class="loading-placeholder">جاري جلب كامل سجل المبيعات من السحابة...</td></tr>`;
+      await refreshStateData({ sales: true });
       renderReports();
       break;
     case 'reservations':
@@ -739,7 +754,11 @@ function openOrderSlideOver(tableId) {
     // Load Active Order from in-memory state (no DB call needed)
     const activeOrder = (state.activeOrders || {})[tableId];
     if (activeOrder) {
-      state.currentCart.items = activeOrder.items || [];
+      // IMPORTANT: decouple the editable cart from the stored order. If we
+      // reused the same array/objects, editing the cart would mutate the saved
+      // order and the "before" state would be lost (breaking cancellation prints).
+      state.currentCart.items = JSON.parse(JSON.stringify(activeOrder.items || []));
+      state.lastSavedItems[tableId] = JSON.parse(JSON.stringify(activeOrder.items || []));
       state.currentCart.customerName = activeOrder.customerName || '';
       state.currentCart.customerCount = activeOrder.customerCount || 1;
       state.currentCart.startTime = activeOrder.startTime || Date.now();
@@ -800,6 +819,7 @@ async function startNewTableOrder() {
   state.currentCart.customerName = customerName;
   state.currentCart.customerCount = customerCount;
   state.currentCart.startTime = newOrder.startTime;
+  state.lastSavedItems[state.selectedTableId] = [];
 
   // 2. Open the occupied panel immediately - no DB wait
   openOrderSlideOver(state.selectedTableId);
@@ -1035,16 +1055,31 @@ async function saveCurrentOrderState() {
   // 1. Update in-memory state immediately
   const activeOrder = (state.activeOrders || {})[state.selectedTableId];
   if (activeOrder) {
-    const oldItems = activeOrder.items ? [...activeOrder.items] : [];
+    // Compare against the last SAVED snapshot (not the live order which may
+    // have been mutated), so cancellations/reductions are always detected.
+    const savedItems = state.lastSavedItems[state.selectedTableId] !== undefined
+      ? state.lastSavedItems[state.selectedTableId]
+      : (activeOrder.items || []);
+    const oldItems = JSON.parse(JSON.stringify(savedItems));
     const newItems = [...state.currentCart.items];
 
     // Detect and print cancellation tickets for any previously printed items that were canceled or reduced
-    await detectAndPrintCanceledItems(state.selectedTableId, oldItems, newItems);
+    const canceledList = await detectAndPrintCanceledItems(state.selectedTableId, oldItems, JSON.parse(JSON.stringify(newItems)));
+
+    // The canceled units are no longer "active printed" quantities - sync printedQty
+    // so a later reduction computes the correct remaining delta (no double-counting).
+    canceledList.forEach(c => {
+      const n = newItems.find(i => i.productId === c.productId);
+      if (n) n.printedQty = n.quantity;
+    });
 
     activeOrder.items = newItems;
 
     // 1.5 Auto-print kitchen tickets for newly added items only
     await printKitchenAuto();
+
+    // Persist the new saved snapshot for the next modification
+    state.lastSavedItems[state.selectedTableId] = JSON.parse(JSON.stringify(activeOrder.items));
 
     const table = state.tables.find(t => t.id === state.selectedTableId);
     if (table && table.status === 'billing') {
@@ -1077,14 +1112,24 @@ async function markTableForBilling() {
   // 1. Update in-memory state immediately
   const activeOrder = (state.activeOrders || {})[state.selectedTableId];
   if (activeOrder) {
-    const oldItems = activeOrder.items ? [...activeOrder.items] : [];
+    const savedItems = state.lastSavedItems[state.selectedTableId] !== undefined
+      ? state.lastSavedItems[state.selectedTableId]
+      : (activeOrder.items || []);
+    const oldItems = JSON.parse(JSON.stringify(savedItems));
     const newItems = [...state.currentCart.items];
 
-    await detectAndPrintCanceledItems(state.selectedTableId, oldItems, newItems);
+    const canceledList = await detectAndPrintCanceledItems(state.selectedTableId, oldItems, JSON.parse(JSON.stringify(newItems)));
+    canceledList.forEach(c => {
+      const n = newItems.find(i => i.productId === c.productId);
+      if (n) n.printedQty = n.quantity;
+    });
+
     activeOrder.items = newItems;
 
     // Auto-print kitchen tickets for any newly added items before billing
     await printKitchenAuto();
+
+    state.lastSavedItems[state.selectedTableId] = JSON.parse(JSON.stringify(activeOrder.items));
   }
 
   const table = state.tables.find(t => t.id === state.selectedTableId);
@@ -1159,6 +1204,7 @@ async function moveTableOrder() {
   if (!state.activeOrders) state.activeOrders = {};
   state.activeOrders[targetId] = order;
   delete state.activeOrders[sourceId];
+  delete state.lastSavedItems[sourceId];
 
   sourceTable.status = 'available';
   targetTable.status = 'occupied';
@@ -1169,6 +1215,7 @@ async function moveTableOrder() {
   state.currentCart.customerName = order.customerName || '';
   state.currentCart.customerCount = order.customerCount || 1;
   state.currentCart.startTime = order.startTime || Date.now();
+  state.lastSavedItems[targetId] = JSON.parse(JSON.stringify(order.items));
 
   closeModal('modal-move-table');
   openOrderSlideOver(targetId);
@@ -1201,8 +1248,13 @@ async function cancelTableOrder() {
 
   const activeOrder = (state.activeOrders || {})[state.selectedTableId];
   if (activeOrder && activeOrder.items) {
-    // Print cancellation tickets to kitchen printers for all previously printed items
-    await detectAndPrintCanceledItems(state.selectedTableId, activeOrder.items, []);
+    // Cancel against the last saved/printed snapshot so ALL printed items get
+    // cancellation tickets, even if the cart was edited before canceling.
+    const savedItems = state.lastSavedItems[state.selectedTableId] !== undefined
+      ? state.lastSavedItems[state.selectedTableId]
+      : activeOrder.items;
+    const savedSnapshot = JSON.parse(JSON.stringify(savedItems));
+    await detectAndPrintCanceledItems(state.selectedTableId, savedSnapshot, []);
   }
 
   // 1. Optimistic state update - memory first
@@ -1211,6 +1263,7 @@ async function cancelTableOrder() {
   state.currentCart.items = [];
   state.currentCart.customerName = '';
   state.currentCart.customerCount = 1;
+  delete state.lastSavedItems[state.selectedTableId];
 
   closeOrderSlideOver();
   renderDashboard();
@@ -1453,6 +1506,7 @@ async function executeCheckout() {
   // 1. Optimistic state update - update memory FIRST so every dependent render is instant
   table.status = 'available';
   if (state.activeOrders) delete state.activeOrders[tableId];
+  delete state.lastSavedItems[tableId];
   if (!state.salesHistory) state.salesHistory = [];
   state.salesHistory.push(saleRecord);
   updateGlobalStatsUI();
@@ -4109,9 +4163,10 @@ async function printKitchenCancellationTickets(canceledItems, tableNumber, custo
 
 /**
  * Compares previously printed items with new items to detect and print cancellations.
+ * Returns the list of canceled items so callers can sync printedQty.
  */
 async function detectAndPrintCanceledItems(tableId, oldItems, newItems) {
-  if (!oldItems || oldItems.length === 0) return;
+  if (!oldItems || oldItems.length === 0) return [];
   const table = state.tables.find(t => t.id === tableId);
   const tableNumber = table ? table.number : '';
   const customerName = state.currentCart.customerName || '';
@@ -4137,6 +4192,8 @@ async function detectAndPrintCanceledItems(tableId, oldItems, newItems) {
   if (canceledList.length > 0) {
     await printKitchenCancellationTickets(canceledList, tableNumber, customerName);
   }
+
+  return canceledList;
 }
 
 /**
@@ -4167,6 +4224,8 @@ async function printKitchenTicketsManual() {
 
   markItemsPrinted(order.items, printedIdx);
   state.currentCart.items = order.items;
+  // Sync the saved snapshot so later reductions/cancellations compute correct deltas
+  state.lastSavedItems[state.selectedTableId] = JSON.parse(JSON.stringify(order.items));
   await state.db.saveActiveOrder(state.selectedTableId, order).catch(err =>
     console.error('Save printed state failed:', err)
   );

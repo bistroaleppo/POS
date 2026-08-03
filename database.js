@@ -73,9 +73,12 @@ class BistroDatabase {
   }
 
   /**
-   * Helper function to race a network promise against a fast timeout (default 1500ms).
+   * Helper function to race a network promise against a timeout.
+   * NOTE: default raised from 1500ms to 30000ms because the sales_history
+   * collection grows over time and full-collection server reads can take
+   * several seconds; a 1.5s cap made large reads time out and return "no data".
    */
-  _withTimeout(promise, ms = 1500) {
+  _withTimeout(promise, ms = 30000) {
     let timer;
     const timeout = new Promise((_, reject) => {
       timer = setTimeout(() => reject(new Error('Network timeout')), ms);
@@ -128,7 +131,7 @@ class BistroDatabase {
 
     if (this.firestore) {
       try {
-        const catSnapshot = await this._withTimeout(this.firestore.collection('categories').limit(1).get(), 2000);
+        const catSnapshot = await this._withTimeout(this.firestore.collection('categories').limit(1).get(), 10000);
         if (catSnapshot.empty) {
           console.log('Cloud Firestore is empty! Seeding default menu data...');
           const batch = this.firestore.batch();
@@ -184,15 +187,25 @@ class BistroDatabase {
       }
 
       try {
-        const snapshot = await this._withTimeout(this.firestore.collection(storeName).get({ source: 'server' }), 1500);
+        const snapshot = await this._withTimeout(this.firestore.collection(storeName).get({ source: 'server' }), 30000);
         const data = [];
         snapshot.forEach(doc => {
           data.push({ id: doc.id, ...doc.data() });
         });
         resolve(data);
       } catch (error) {
-        console.warn(`Firebase store ${storeName} server load timed out or offline, returning empty fallback:`, error.message || error);
-        resolve([]);
+        console.warn(`Firebase store ${storeName} server load timed out or offline, returning cache fallback:`, error.message || error);
+        // Fallback: serve whatever the local cache holds so the UI never shows false "empty"
+        try {
+          const snapshot = await this.firestore.collection(storeName).get({ source: 'cache' });
+          const data = [];
+          snapshot.forEach(doc => {
+            data.push({ id: doc.id, ...doc.data() });
+          });
+          resolve(data);
+        } catch (cacheError) {
+          resolve([]);
+        }
       }
     });
   }
@@ -218,7 +231,7 @@ class BistroDatabase {
       }
 
       try {
-        const doc = await this._withTimeout(this.firestore.collection(storeName).doc(String(key)).get(), 1500);
+        const doc = await this._withTimeout(this.firestore.collection(storeName).doc(String(key)).get(), 30000);
         if (doc && doc.exists) {
           resolve({ id: doc.id, ...doc.data() });
         } else {
@@ -438,8 +451,51 @@ class BistroDatabase {
   }
 
   // 5. Sales History CRUD
-  async getSalesHistory() {
-    return this.getAll('sales_history');
+  async getSalesHistory(forceServer = false) {
+    if (!forceServer) {
+      return this.getAll('sales_history', false);
+    }
+    // forceServer=true bypasses the local offline cache and loads the FULL
+    // cloud dataset via cursor pagination. A single get() of a growing
+    // sales_history collection can exceed the Firestore 10MB query limit or
+    // run long enough to hit network timeouts, so we page through it in
+    // chunks (immune to size limits, each page far below the timeout).
+    return this._getAllPaginated('sales_history');
+  }
+
+  /**
+   * Reads a whole Firestore collection from the server using cursor pagination
+   * (orderBy __name__ + startAfter), so arbitrarily large collections load
+   * completely and reliably. Falls back to the local cache if offline.
+   */
+  async _getAllPaginated(storeName, pageSize = 500) {
+    const all = [];
+    try {
+      let lastDoc = null;
+      for (;;) {
+        let q = this.firestore.collection(storeName).orderBy('__name__').limit(pageSize);
+        if (lastDoc) q = q.startAfter(lastDoc);
+
+        const snapshot = await this._withTimeout(q.get({ source: 'server' }), 60000);
+        const page = [];
+        snapshot.forEach(doc => { page.push({ id: doc.id, ...doc.data() }); });
+        all.push(...page);
+
+        if (snapshot.empty || page.length < pageSize) break;
+        lastDoc = snapshot.docs[snapshot.docs.length - 1];
+      }
+      return all;
+    } catch (error) {
+      console.warn(`Firebase store ${storeName} paginated server load failed, returning cache fallback:`, error.message || error);
+      try {
+        const snapshot = await this.firestore.collection(storeName).get({ source: 'cache' });
+        const data = [];
+        snapshot.forEach(doc => { data.push({ id: doc.id, ...doc.data() }); });
+        return data;
+      } catch (cacheError) {
+        return [];
+      }
+    }
   }
 
   async addSale(saleData) {
