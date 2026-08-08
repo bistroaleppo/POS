@@ -145,6 +145,22 @@ function createWindow() {
 
   win.loadFile(path.join(__dirname, '..', 'index.html'));
 
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    return {
+      action: 'allow',
+      overrideBrowserWindowOptions: {
+        autoHideMenuBar: true,
+        backgroundColor: '#f0f2f5',
+        webPreferences: {
+          preload: path.join(__dirname, 'preload.js'),
+          contextIsolation: true,
+          nodeIntegration: false,
+          spellcheck: false
+        }
+      }
+    };
+  });
+
   win.on('closed', () => {
     win = null;
   });

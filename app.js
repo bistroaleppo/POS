@@ -409,7 +409,7 @@ async function refreshStateData(options = {}) {
   }
 
   if (options.sales || !state.salesHistory || state.salesHistory.length === 0) {
-    promises.push(state.db.getSalesHistory(true).then(res => state.salesHistory = res));
+    promises.push(state.db.getSalesHistory(false).then(res => state.salesHistory = res));
   }
 
   if (options.reservations || !state.reservations || state.reservations.length === 0) {
@@ -1342,7 +1342,7 @@ function openCheckoutConfirmModal() {
 
   // Initialize currency UI
   const curRadio = document.querySelector('input[name="currency-type"]:checked');
-  if(curRadio) curRadio.checked = false;
+  if (curRadio) curRadio.checked = false;
   document.querySelector('input[name="currency-type"][value="syrian"]').checked = true;
   document.getElementById('exchange-rate-input').value = '';
   if (typeof toggleCurrencyRateInput === 'function') toggleCurrencyRateInput();
@@ -1477,7 +1477,7 @@ async function executeCheckout() {
   const exchangeRateInput = document.getElementById('exchange-rate-input');
   const exchangeRate = parseFloat(exchangeRateInput?.value) || null;
   let dollarTotal = null;
-  
+
   if (currencyType === 'dollar' && exchangeRate > 0) {
     dollarTotal = parseFloat((total / exchangeRate).toFixed(2));
   }
@@ -2425,35 +2425,35 @@ function showReceiptPreview(saleId) {
         
         <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
         
-        <div class="receipt-details-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+        <div class="receipt-details-row" style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14.5px; line-height: 1.45;">
           <span style="font-weight: 600;">رقم الفاتورة:</span>
           <span style="font-family: monospace; font-weight: bold;">${formattedInvoiceId}</span>
         </div>
-        <div class="receipt-details-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+        <div class="receipt-details-row" style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14.5px; line-height: 1.45;">
           <span style="font-weight: 600;">طاولة:</span>
           <span>طاولة ${sale.tableNumber}</span>
         </div>
-        <div class="receipt-details-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+        <div class="receipt-details-row" style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14.5px; line-height: 1.45;">
           <span style="font-weight: 600;">الزبون:</span>
           <span>${sale.customerName || 'زبون عام'}</span>
         </div>
-        <div class="receipt-details-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+        <div class="receipt-details-row" style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14.5px; line-height: 1.45;">
           <span style="font-weight: 600;">طريقة الدفع:</span>
           <span>${displayPaymentMethod}</span>
         </div>
-        <div class="receipt-details-row" style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #333;">
+        <div class="receipt-details-row" style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14.5px; line-height: 1.45; color: #333;">
           <span style="font-weight: 600;">التاريخ والوقت:</span>
-          <span style="font-size: 12px;">${formattedDate}</span>
+          <span style="font-size: 13.5px;">${formattedDate}</span>
         </div>
         
-        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
+        <div style="border-top: 1px dashed #000; margin: 12px 0;"></div>
         
-        <table style="width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px;">
+        <table style="width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14.5px; line-height: 1.45;">
           <thead>
             <tr>
-              <th style="text-align: right; border-bottom: 1px dashed #000; padding-bottom: 6px; width: 55%; font-weight: 700;">الصنف</th>
-              <th style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 6px; width: 15%; font-weight: 700;">العدد</th>
-              <th style="text-align: left; border-bottom: 1px dashed #000; padding-bottom: 6px; width: 30%; font-weight: 700;">الإجمالي</th>
+              <th style="text-align: right; border-bottom: 1px dashed #000; padding-bottom: 8px; width: 55%; font-weight: 700;">الصنف</th>
+              <th style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; width: 15%; font-weight: 700;">العدد</th>
+              <th style="text-align: left; border-bottom: 1px dashed #000; padding-bottom: 8px; width: 30%; font-weight: 700;">الإجمالي</th>
             </tr>
           </thead>
           <tbody>
@@ -2461,15 +2461,15 @@ function showReceiptPreview(saleId) {
           </tbody>
         </table>
         
-        <div style="border-top: 1px dashed #000; margin: 10px 0;"></div>
+        <div style="border-top: 1px dashed #000; margin: 12px 0;"></div>
         
-        <div class="receipt-totals" style="font-size: 13px; margin-top: 10px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+        <div class="receipt-totals" style="font-size: 14.5px; margin-top: 12px; line-height: 1.45;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
             <span>المجموع الفرعي:</span>
             <span>${formatCurrency(sale.subtotal)}</span>
           </div>
           ${discountHtml}
-          <div class="row grand-total" style="display: flex; justify-content: space-between; font-weight: 800; font-size: 15px; border-top: 1px dashed #000; padding-top: 8px; margin-top: 8px;">
+          <div class="row grand-total" style="display: flex; justify-content: space-between; font-weight: 800; font-size: 17px; border-top: 1px dashed #000; padding-top: 10px; margin-top: 10px;">
             <span>المجموع النهائي:</span>
             <span>${formatCurrency(sale.total)}</span>
           </div>
@@ -2601,7 +2601,8 @@ function printReceiptSlipDirectly(sale, invoiceId) {
             padding: 4mm 8mm 6mm 8mm;
             width: 80mm;
             direction: rtl;
-            font-size: 12px;
+            font-size: 13.5px;
+            line-height: 1.45;
             color: #000;
             background: #fff;
             -webkit-print-color-adjust: exact;
@@ -2612,30 +2613,30 @@ function printReceiptSlipDirectly(sale, invoiceId) {
           }
           .receipt-header {
             text-align: center;
-            margin-bottom: 4mm;
+            margin-bottom: 4.5mm;
           }
           .receipt-header h2 {
             margin: 0;
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 800;
             letter-spacing: 1px;
             color: #000;
           }
           .receipt-header p {
             margin: 2px 0 0 0;
-            font-size: 11px;
+            font-size: 12px;
             font-style: italic;
           }
           .receipt-divider {
             border-top: 1px dashed #000;
-            margin: 3mm 0;
+            margin: 3.5mm 0;
             height: 0;
           }
           .receipt-details-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 2mm;
-            font-size: 12px;
+            margin-bottom: 2.5mm;
+            font-size: 13.5px;
           }
           .receipt-details-row span:first-child {
             font-weight: 600;
@@ -2643,32 +2644,33 @@ function printReceiptSlipDirectly(sale, invoiceId) {
           .receipt-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 3mm 0;
+            margin: 3.5mm 0;
           }
           .receipt-table th {
             border-bottom: 1px dashed #000;
-            padding: 2mm 0;
-            font-size: 12px;
+            padding: 2.5mm 0;
+            font-size: 13.5px;
             font-weight: 700;
           }
           .receipt-table td {
-            font-size: 12px;
+            font-size: 13.5px;
+            padding: 2mm 0;
           }
           .receipt-totals {
-            margin-top: 3mm;
-            font-size: 12px;
+            margin-top: 3.5mm;
+            font-size: 13.5px;
           }
           .receipt-totals .row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 2mm;
+            margin-bottom: 2.5mm;
           }
           .receipt-totals .row.grand-total {
             font-weight: 800;
-            font-size: 14px;
+            font-size: 15.5px;
             border-top: 1px dashed #000;
-            padding-top: 3mm;
-            margin-top: 2mm;
+            padding-top: 3.5mm;
+            margin-top: 2.5mm;
           }
           .receipt-footer {
             text-align: center;
@@ -3574,9 +3576,9 @@ class PrintManager {
     const W = Math.ceil(dotsW / 8) * 8;
     const widthBytes = W / 8;
     const k = DPI / CSS;
-    const lineGap = 6; // blank dots between lines
+    const lineGap = 12; // blank dots between lines
     const rightMargin = 16;
-    const px = (doubleSize ? 2 : 1) * 24;
+    const px = (doubleSize ? 2 : 1) * 28;
     const fontFamily = 'Cairo, "Segoe UI", Tahoma, Arial, sans-serif';
     const probe = document.createElement('canvas').getContext('2d');
     probe.font = (bold ? 'bold ' : '') + px + 'px ' + fontFamily;
@@ -3635,10 +3637,10 @@ class PrintManager {
     const W = Math.ceil(dotsW / 8) * 8;
     const widthBytes = W / 8;
     const k = DPI / CSS;
-    const lineGap = 6;
+    const lineGap = 10;
     const leftMargin = 8;
     const rightMargin = 16;
-    const px = (doubleSize ? 2 : 1) * 24;
+    const px = (doubleSize ? 2 : 1) * 26;
     const fontFamily = 'Cairo, "Segoe UI", Tahoma, Arial, sans-serif';
     const probe = document.createElement('canvas').getContext('2d');
     probe.font = (bold ? 'bold ' : '') + px + 'px ' + fontFamily;
@@ -3826,14 +3828,14 @@ class PrintManager {
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
         * { box-sizing: border-box; }
         @page { size: 72mm auto; margin: 0; }
-        body { font-family: 'Cairo', sans-serif; width: 72mm; margin: 0 auto; padding: 2mm 2mm 3mm; direction: rtl; font-size: 10px; line-height: 1.35; color: #000; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .ticket-header { text-align: center; margin-bottom: 2mm; }
-        .ticket-header h2 { margin: 0; font-size: 14px; font-weight: 800; }
-        .ticket-header p { margin: 1px 0; }
-        .divider { border-top: 1px dashed #000; margin: 2mm 0; }
-        .row { display: flex; justify-content: space-between; margin-bottom: 1mm; }
+        body { font-family: 'Cairo', sans-serif; width: 72mm; margin: 0 auto; padding: 2mm 2mm 3mm; direction: rtl; font-size: 11.5px; line-height: 1.45; color: #000; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .ticket-header { text-align: center; margin-bottom: 2.5mm; }
+        .ticket-header h2 { margin: 0; font-size: 15px; font-weight: 800; }
+        .ticket-header p { margin: 1.5px 0; }
+        .divider { border-top: 1px dashed #000; margin: 2.5mm 0; }
+        .row { display: flex; justify-content: space-between; margin-bottom: 1.8mm; }
         .items-table { width: 100%; }
-        .items-table .row { font-size: 11px; font-weight: 700; }
+        .items-table .row { font-size: 12px; font-weight: 700; }
         .qty { text-align: center; font-weight: 800; }
         .footer { text-align: center; margin-top: 3mm; font-size: 8px; color: #555; }
       </style></head><body>${bodyHtml}</body></html>`;
@@ -4014,8 +4016,6 @@ class PrintManager {
       ${dollarHtml}
       <div class="divider"></div>
       <div class="footer">${escapeHtml(state.restaurantFooter || '')}</div>`;
-
-    await this._routeLines(printer, lines, `طابعة الفواتير: ${printer.name}`, html);
 
     await this._routeLines(printer, lines, `طابعة الفواتير: ${printer.name}`, html);
   }

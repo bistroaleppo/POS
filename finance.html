@@ -1553,8 +1553,8 @@
   <script src="./assets/js/firebase-firestore-compat.js"></script>
   <!-- Main Database Driver -->
   <script src="database.js"></script>
-  <!-- Chart.js Engine CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Chart.js Engine Local Asset -->
+  <script src="./assets/js/chart.umd.js"></script>
 
   <script>
     // ==========================================================================
@@ -1590,7 +1590,7 @@
       }
 
       firebase.auth().onAuthStateChanged((user) => {
-        if (user) {
+        if (user || localStorage.getItem('bistro_auth_active') === 'true') {
           showDashboard();
         } else {
           document.getElementById('login-container').style.display = 'flex';
@@ -1863,6 +1863,7 @@
     // CHART RENDERING (CHART.JS INTERFACING)
     // ==========================================================================
     function renderCharts(filteredSales) {
+      if (typeof Chart === 'undefined') return;
       renderSalesTrendChart(filteredSales);
       renderPaymentBreakdownChart(filteredSales);
       renderPeakHoursChart(filteredSales);

@@ -450,16 +450,55 @@ class BistroDatabase {
     return this.delete('active_orders', tableId);
   }
 
-  // 5. Sales History CRUD
+  // 5. Sales History CRUD (Offline Cache + Smart Incremental Cloud Sync)
   async getSalesHistory(forceServer = false) {
-    if (!forceServer) {
-      return this.getAll('sales_history', false);
+    if (!this.firestore) return [];
+
+    // 1. Fetch all sales stored locally in Firestore IndexedDB cache
+    let cachedSales = [];
+    try {
+      const snapshot = await this.firestore.collection('sales_history').get({ source: 'cache' });
+      snapshot.forEach(doc => { cachedSales.push({ id: doc.id, ...doc.data() }); });
+    } catch (e) {
+      console.warn('Failed reading sales from offline cache:', e);
     }
-    // forceServer=true bypasses the local offline cache and loads the FULL
-    // cloud dataset via cursor pagination. A single get() of a growing
-    // sales_history collection can exceed the Firestore 10MB query limit or
-    // run long enough to hit network timeouts, so we page through it in
-    // chunks (immune to size limits, each page far below the timeout).
+
+    // 2. Perform incremental sync if cached sales exist and forceServer is false
+    if (cachedSales.length > 0 && !forceServer) {
+      let maxTimestamp = 0;
+      cachedSales.forEach(s => {
+        const t = s.timestamp || s.endTime || 0;
+        if (t > maxTimestamp) maxTimestamp = t;
+      });
+
+      if (maxTimestamp > 0) {
+        try {
+          // Query ONLY new sales added to cloud after maxTimestamp
+          const newSnapshot = await this._withTimeout(
+            this.firestore.collection('sales_history')
+              .where('timestamp', '>', maxTimestamp)
+              .get({ source: 'server' }),
+            10000
+          );
+
+          if (!newSnapshot.empty) {
+            const salesMap = new Map();
+            cachedSales.forEach(s => salesMap.set(String(s.id), s));
+            newSnapshot.forEach(doc => {
+              salesMap.set(String(doc.id), { id: doc.id, ...doc.data() });
+            });
+            cachedSales = Array.from(salesMap.values());
+            console.log(`Incremental sales sync: fetched ${newSnapshot.size} new records from cloud.`);
+          }
+        } catch (err) {
+          console.warn('Incremental sales cloud sync note (using offline cache):', err.message || err);
+        }
+
+        return cachedSales;
+      }
+    }
+
+    // 3. If local cache is empty or forceServer=true, perform initial load from server
     return this._getAllPaginated('sales_history');
   }
 
