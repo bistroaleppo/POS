@@ -538,7 +538,7 @@ class BistroDatabase {
   }
 
   async addSale(saleData) {
-    saleData.timestamp = Date.now();
+    saleData.timestamp = saleData.timestamp || Date.now();
     return this.put('sales_history', saleData);
   }
 

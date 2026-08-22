@@ -1286,6 +1286,14 @@ function openCheckoutConfirmModal() {
   const table = state.tables.find(t => t.id === state.selectedTableId);
   if (!table) return;
 
+  // Reset checkout processing lock & button state
+  state.isProcessingCheckout = false;
+  const confirmBtn = document.getElementById('btn-confirm-checkout');
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = 'إتمام الدفع وطباعة الفاتورة';
+  }
+
   // Update header and time
   document.getElementById('chk-table-label').textContent = `فاتورة طاولة ${table.number}`;
   document.getElementById('chk-time-label').textContent = `وقت الدخول: ${new Date(state.currentCart.startTime).toLocaleTimeString('ar-SY')}`;
@@ -1446,86 +1454,120 @@ function updateDollarTotalPreview() {
  * Finalizes the checkout, saves sales history record, and releases the table.
  */
 async function executeCheckout() {
+  // Prevent duplicate execution from double clicks or rapid multi-triggers
+  if (state.isProcessingCheckout) return;
   if (!state.selectedTableId) return;
+
   const tableId = state.selectedTableId;
   const table = state.tables.find(t => t.id === tableId);
   if (!table) return;
 
-  const pMethod = document.querySelector('input[name="payment-method"]:checked').value;
-
-  const discountInput = document.getElementById('checkout-discount-input');
-  const discount = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
-
-  let subtotal = 0;
-  state.currentCart.items.forEach(item => {
-    const originalTotal = item.price * item.quantity;
-    const totalItem = item.isHospitality ? 0 : originalTotal;
-    subtotal += totalItem;
-  });
-
-  const netSubtotal = Math.max(0, subtotal - discount);
-  const total = netSubtotal;
-
-  // Print any remaining unprinted kitchen tickets before finalizing the order
-  await printKitchenAuto();
-
-  // Pre-generate invoice ID locally so the UI does not wait for any DB round-trip
-  const invoiceId = String(Date.now());
-
-  // Check currency
-  const currencyType = document.querySelector('input[name="currency-type"]:checked')?.value || 'syrian';
-  const exchangeRateInput = document.getElementById('exchange-rate-input');
-  const exchangeRate = parseFloat(exchangeRateInput?.value) || null;
-  let dollarTotal = null;
-
-  if (currencyType === 'dollar' && exchangeRate > 0) {
-    dollarTotal = parseFloat((total / exchangeRate).toFixed(2));
+  if (!state.currentCart.items || state.currentCart.items.length === 0) {
+    alert('لا يمكن ترحيل الفاتورة لأن الطلب فارغ!');
+    return;
   }
 
-  const saleRecord = {
-    id: invoiceId,
-    timestamp: Date.now(),
-    tableNumber: table.number,
-    customerName: state.currentCart.customerName,
-    guestCount: state.currentCart.customerCount,
-    items: JSON.parse(JSON.stringify(state.currentCart.items)).map(it => {
-      const { printedQty, ...rest } = it;
-      return rest;
-    }),
-    subtotal: subtotal,
-    discount: discount,
-    total: total,
-    currencyType: currencyType,
-    exchangeRate: exchangeRate,
-    dollarTotal: dollarTotal,
-    paymentMethod: pMethod,
-    startTime: state.currentCart.startTime,
-    endTime: Date.now()
-  };
+  // Engage checkout lock and disable button immediately
+  state.isProcessingCheckout = true;
+  const confirmBtn = document.getElementById('btn-confirm-checkout');
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<span style="display:inline-block; margin-left:6px;">⏳</span> جاري ترحيل الفاتورة...';
+  }
 
-  // 1. Optimistic state update - update memory FIRST so every dependent render is instant
-  table.status = 'available';
-  if (state.activeOrders) delete state.activeOrders[tableId];
-  delete state.lastSavedItems[tableId];
-  if (!state.salesHistory) state.salesHistory = [];
-  state.salesHistory.push(saleRecord);
-  updateGlobalStatsUI();
+  try {
+    const pMethod = document.querySelector('input[name="payment-method"]:checked')?.value || 'cash';
 
-  // 2. Close modals and slideover IMMEDIATELY (renderDashboard is now synchronous)
-  closeModal('modal-checkout');
-  closeOrderSlideOver();
+    const discountInput = document.getElementById('checkout-discount-input');
+    const discount = discountInput ? (parseFloat(discountInput.value) || 0) : 0;
 
-  // 3. Auto-print receipt immediately (routes to configured main printers, else default)
-  printReceiptToMainPrinters(saleRecord, invoiceId);
+    let subtotal = 0;
+    state.currentCart.items.forEach(item => {
+      const originalTotal = item.price * item.quantity;
+      const totalItem = item.isHospitality ? 0 : originalTotal;
+      subtotal += totalItem;
+    });
 
-  // 4. Switch to reports and show receipt preview
-  switchTab('reports');
-  showReceiptPreview(invoiceId);
+    const netSubtotal = Math.max(0, subtotal - discount);
+    const total = netSubtotal;
 
-  // 5. Fire all DB writes in background - completely non-blocking
-  state.db.addSale({ ...saleRecord }).catch(err => console.error('Sale save failed:', err));
-  state.db.clearActiveOrder(tableId).catch(err => console.error('Clear active order failed:', err));
-  state.db.updateTableStatus(tableId, 'available').catch(err => console.error('Update table status failed:', err));
+    // Print any remaining unprinted kitchen tickets before finalizing the order
+    try {
+      await printKitchenAuto();
+    } catch (printErr) {
+      console.warn('Kitchen auto-print during checkout note:', printErr);
+    }
+
+    // Pre-generate invoice ID locally so the UI does not wait for any DB round-trip
+    const invoiceId = String(Date.now());
+
+    // Check currency
+    const currencyType = document.querySelector('input[name="currency-type"]:checked')?.value || 'syrian';
+    const exchangeRateInput = document.getElementById('exchange-rate-input');
+    const exchangeRate = parseFloat(exchangeRateInput?.value) || null;
+    let dollarTotal = null;
+
+    if (currencyType === 'dollar' && exchangeRate > 0) {
+      dollarTotal = parseFloat((total / exchangeRate).toFixed(2));
+    }
+
+    const saleRecord = {
+      id: invoiceId,
+      timestamp: Date.now(),
+      tableNumber: table.number,
+      customerName: state.currentCart.customerName || 'زبون عام',
+      guestCount: state.currentCart.customerCount || 1,
+      items: JSON.parse(JSON.stringify(state.currentCart.items)).map(it => {
+        const { printedQty, ...rest } = it;
+        return rest;
+      }),
+      subtotal: subtotal,
+      discount: discount,
+      total: total,
+      currencyType: currencyType,
+      exchangeRate: exchangeRate,
+      dollarTotal: dollarTotal,
+      paymentMethod: pMethod,
+      startTime: state.currentCart.startTime || Date.now(),
+      endTime: Date.now()
+    };
+
+    // 1. Optimistic state update - update memory FIRST so every dependent render is instant
+    table.status = 'available';
+    if (state.activeOrders) delete state.activeOrders[tableId];
+    delete state.lastSavedItems[tableId];
+    state.currentCart.items = [];
+    state.currentCart.customerName = '';
+    state.currentCart.customerCount = 1;
+    if (!state.salesHistory) state.salesHistory = [];
+    state.salesHistory.push(saleRecord);
+    updateGlobalStatsUI();
+
+    // 2. Close modals and slideover IMMEDIATELY (renderDashboard is now synchronous)
+    closeModal('modal-checkout');
+    closeOrderSlideOver();
+
+    // 3. Auto-print receipt immediately (routes to configured main printers, else default)
+    printReceiptToMainPrinters(saleRecord, invoiceId);
+
+    // 4. Switch to reports and show receipt preview
+    switchTab('reports');
+    showReceiptPreview(invoiceId);
+
+    // 5. Fire all DB writes in background - completely non-blocking
+    state.db.addSale({ ...saleRecord }).catch(err => console.error('Sale save failed:', err));
+    state.db.clearActiveOrder(tableId).catch(err => console.error('Clear active order failed:', err));
+    state.db.updateTableStatus(tableId, 'available').catch(err => console.error('Update table status failed:', err));
+  } catch (err) {
+    console.error('Execute checkout failed:', err);
+    alert('حدث خطأ أثناء ترحيل الفاتورة. يرجى المحاولة مرة أخرى.');
+  } finally {
+    state.isProcessingCheckout = false;
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = 'إتمام الدفع وطباعة الفاتورة';
+    }
+  }
 }
 
 // ==========================================================================
@@ -2319,7 +2361,7 @@ function renderReports() {
       <td>${sale.paymentMethod || 'نقداً'}</td>
       <td class="gold-text"><strong>${formatCurrency(sale.total)}</strong></td>
       <td>
-        <button class="btn btn-secondary btn-xs" onclick="event.stopPropagation(); showReceiptPreview(${sale.id})">
+        <button class="btn btn-secondary btn-xs" onclick="event.stopPropagation(); showReceiptPreview('${sale.id}')">
           استعراض التفاصيل
         </button>
       </td>
@@ -2339,7 +2381,7 @@ function showReceiptPreview(saleId) {
   const activeRow = document.getElementById(`sale-row-${saleId}`);
   if (activeRow) activeRow.classList.add('active');
 
-  const sale = state.salesHistory.find(s => s.id === saleId);
+  const sale = state.salesHistory.find(s => String(s.id) === String(saleId));
   const container = document.getElementById('receipt-preview-container');
   if (!sale || !container) return;
 

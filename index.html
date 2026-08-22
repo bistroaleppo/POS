@@ -109,25 +109,16 @@
           <span>حجز الطاولات</span>
         </button>
 
-        <button class="nav-item" id="nav-btn-finance" onclick="window.open('finance.html', '_blank')">
-          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-            <polyline points="17 6 23 6 23 12"></polyline>
-          </svg>
-          <span>المالية والإحصائيات</span>
-        </button>
-      </nav>
 
-      <div class="sidebar-footer">
-        <div class="time-widget">
-          <div class="time-display" id="time-display">00:00:00</div>
-          <div class="date-display" id="date-display">الخميس، 21 مايو</div>
+        <div class="sidebar-footer">
+          <div class="time-widget">
+            <div class="time-display" id="time-display">00:00:00</div>
+            <div class="date-display" id="date-display">الخميس، 21 مايو</div>
+          </div>
+          <button class="btn btn-logout" onclick="handleLogout()"
+            style="margin-top: 15px; width: 100%; background: #ef4444; color: white; padding: 10px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600;">تسجيل
+            الخروج</button>
         </div>
-        <button class="btn btn-logout" onclick="handleLogout()"
-          style="margin-top: 15px; width: 100%; background: #ef4444; color: white; padding: 10px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-weight: 600;">تسجيل
-          الخروج</button>
-      </div>
     </aside>
 
     <!-- Main Content Area -->

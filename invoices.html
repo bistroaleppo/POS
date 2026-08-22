@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إدارة وتعديل الفواتير | Bistro POS</title>
+  <link rel="icon" type="image/png" href="./assets/logo.png">
+  <link rel="manifest" href="./manifest.json">
+  <!-- Google Fonts: Cairo & Inter -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       Design System: Light & Silver Theme with Forest Green & Gold Accents
+       ========================================================================== */
+    :root {
+      --bg-primary: #f1f5f9;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f8fafc;
+
+      --accent-green: #193B23;
+      --accent-green-hover: #122b1a;
+      --accent-green-light: #e8f0eb;
+
+      --gold-color: #d4af37;
+      --gold-hover: #b8972e;
+      --gold-light: #fdfaf0;
+
+      --danger-color: #ef4444;
+      --danger-hover: #dc2626;
+      --danger-light: #fef2f2;
+
+      --warning-color: #f59e0b;
+      --warning-light: #fffbeb;
+
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --border-focus: #193B23;
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.08);
+
+      --font-family: 'Cairo', 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      min-height: 100vh;
+      direction: rtl;
+      line-height: 1.5;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-green);
+    }
+
+    /* Top Navigation Bar */
+    .navbar {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .nav-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: var(--accent-green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .nav-title h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent-green);
+    }
+
+    .nav-title p {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: var(--accent-green);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: var(--accent-green-hover);
+    }
+
+    .btn-gold {
+      background: var(--gold-color);
+      color: #fff;
+    }
+    .btn-gold:hover {
+      background: var(--gold-hover);
+    }
+
+    .btn-outline {
+      background: #fff;
+      border-color: var(--border-color);
+      color: var(--text-main);
+    }
+    .btn-outline:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    .btn-danger {
+      background: var(--danger-color);
+      color: #fff;
+    }
+    .btn-danger:hover {
+      background: var(--danger-hover);
+    }
+
+    .btn-danger-outline {
+      background: #fff;
+      border-color: #fca5a5;
+      color: var(--danger-color);
+    }
+    .btn-danger-outline:hover {
+      background: var(--danger-light);
+    }
+
+    .btn-warning-outline {
+      background: #fff;
+      border-color: #fde68a;
+      color: #b45309;
+    }
+    .btn-warning-outline:hover {
+      background: var(--warning-light);
+    }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+
+    /* Layout Container */
+    .container {
+      max-width: 1400px;
+      margin: 20px auto;
+      padding: 0 20px 40px 20px;
+    }
+
+    /* KPI Summary Cards */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .kpi-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .kpi-info h4 {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .kpi-info .kpi-num {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .kpi-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .kpi-icon.green { background: var(--accent-green-light); color: var(--accent-green); }
+    .kpi-icon.gold { background: var(--gold-light); color: var(--gold-color); }
+    .kpi-icon.red { background: var(--danger-light); color: var(--danger-color); }
+    .kpi-icon.amber { background: var(--warning-light); color: #d97706; }
+
+    /* Main Content Card */
+    .content-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    /* Filters Bar */
+    .filter-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      background: #fafbfc;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 260px;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 9px 38px 9px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 13.5px;
+      outline: none;
+      background: #fff;
+    }
+    .search-box input:focus {
+      border-color: var(--accent-green);
+      box-shadow: 0 0 0 2px rgba(25, 59, 35, 0.1);
+    }
+    .search-box .search-icon {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-select {
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 13px;
+      background: #fff;
+      outline: none;
+      color: var(--text-main);
+      font-weight: 500;
+    }
+    .filter-select:focus {
+      border-color: var(--accent-green);
+    }
+
+    /* Tabs Filter (All / Duplicates Only) */
+    .filter-tabs {
+      display: flex;
+      gap: 6px;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: var(--radius-sm);
+    }
+
+    .filter-tab {
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .filter-tab.active {
+      background: #fff;
+      color: var(--accent-green);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .badge-count {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 10px;
+      background: #e2e8f0;
+      color: var(--text-muted);
+    }
+
+    .filter-tab.active .badge-count {
+      background: var(--accent-green-light);
+      color: var(--accent-green);
+    }
+
+    .filter-tab.warning-tab.active {
+      color: var(--danger-color);
+    }
+    .filter-tab.warning-tab.active .badge-count {
+      background: var(--danger-light);
+      color: var(--danger-color);
+    }
+
+    /* Invoices Table */
+    .table-responsive {
+      overflow-x: auto;
+    }
+
+    table.invoices-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      text-align: right;
+    }
+
+    table.invoices-table thead th {
+      background: #f8fafc;
+      color: var(--text-muted);
+      font-weight: 700;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    table.invoices-table tbody td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: middle;
+    }
+
+    table.invoices-table tbody tr:hover {
+      background: var(--bg-card-hover);
+    }
+
+    table.invoices-table tbody tr.duplicate-row {
+      background: #fffbeb;
+    }
+    table.invoices-table tbody tr.duplicate-row:hover {
+      background: #fef3c7;
+    }
+
+    .tag-duplicate {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-weight: 700;
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+
+    .tag-payment {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-weight: 600;
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    .tag-payment.cash { background: #dcfce7; color: #166534; }
+    .tag-payment.card { background: #e0e7ff; color: #3730a3; }
+    .tag-payment.dollar { background: #fef3c7; color: #92400e; }
+
+    /* Action Buttons in Row */
+    .row-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-container {
+      background: #fff;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 680px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      animation: modalIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.96) translateY(10px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header h3 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent-green);
+    }
+
+    .modal-close-btn {
+      background: transparent;
+      border: none;
+      font-size: 20px;
+      color: var(--text-muted);
+      cursor: pointer;
+      line-height: 1;
+    }
+    .modal-close-btn:hover {
+      color: var(--danger-color);
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      background: #fafbfc;
+    }
+
+    /* Form Grids in Modal */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .form-group input,
+    .form-group select {
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 13.5px;
+      outline: none;
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: var(--accent-green);
+      box-shadow: 0 0 0 2px rgba(25, 59, 35, 0.1);
+    }
+
+    /* Items Editor Table */
+    .items-editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+    .items-editor-header h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    table.items-edit-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    table.items-edit-table th {
+      background: #f8fafc;
+      padding: 8px 10px;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border-color);
+    }
+    table.items-edit-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: middle;
+    }
+    table.items-edit-table input[type="number"],
+    table.items-edit-table input[type="text"] {
+      padding: 5px 8px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 12.5px;
+      width: 100%;
+    }
+
+    /* Totals Summary in Modal */
+    .modal-totals-box {
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13.5px;
+    }
+
+    .modal-totals-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-totals-row.grand {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--accent-green);
+      border-top: 1px dashed var(--border-color);
+      padding-top: 6px;
+      margin-top: 4px;
+    }
+
+    /* Print Preview Slip */
+    .receipt-preview-paper {
+      background: #fff;
+      color: #000;
+      width: 320px;
+      margin: 0 auto;
+      padding: 20px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      font-family: 'Cairo', sans-serif;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      left: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 9999;
+    }
+
+    .toast {
+      padding: 12px 20px;
+      border-radius: var(--radius-sm);
+      background: #1e293b;
+      color: #fff;
+      font-size: 13.5px;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .toast.success { background: #065f46; border-right: 4px solid #34d399; }
+    .toast.error { background: #991b1b; border-right: 4px solid #f87171; }
+    .toast.warning { background: #92400e; border-right: 4px solid #fbbf24; }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Loading Spinner */
+    .loading-state {
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #e2e8f0;
+      border-top-color: var(--accent-green);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px auto;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+
+  <!-- Firebase App & Firestore Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <!-- App Database Driver -->
+  <script src="./database.js"></script>
+</head>
+
+<body>
+
+  <!-- Top Navbar -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <div class="nav-logo">B</div>
+      <div class="nav-title">
+        <h1>إدارة وتعديل الفواتير</h1>
+        <p>البحث، التعديل، الحذف، واكتشاف الفواتير المكررة</p>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <a href="index.html" class="btn btn-outline btn-sm">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        نظام الكاشير
+      </a>
+      <a href="finance.html" class="btn btn-outline btn-sm">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+          <polyline points="17 6 23 6 23 12"></polyline>
+        </svg>
+        لوحة المالية
+      </a>
+      <button class="btn btn-primary btn-sm" onclick="loadInvoicesData(true)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+        </svg>
+        تحديث البيانات
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- KPI Summary Grid -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-info">
+          <h4>إجمالي الفواتير المسجلة</h4>
+          <div class="kpi-num" id="kpi-total-invoices">0</div>
+        </div>
+        <div class="kpi-icon green">📑</div>
+      </div>
+
+      <div class="kpi-card" id="kpi-duplicate-card" style="cursor: pointer;" onclick="setFilterTab('duplicates')">
+        <div class="kpi-info">
+          <h4>الفواتير المكررة المكتشفة</h4>
+          <div class="kpi-num" id="kpi-duplicate-invoices" style="color: var(--danger-color);">0</div>
+        </div>
+        <div class="kpi-icon red">⚠️</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-info">
+          <h4>إجمالي المبيعات (ل.س)</h4>
+          <div class="kpi-num" id="kpi-total-revenue">0 ل.س</div>
+        </div>
+        <div class="kpi-icon gold">💰</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-info">
+          <h4>فواتير اليوم</h4>
+          <div class="kpi-num" id="kpi-today-invoices">0</div>
+        </div>
+        <div class="kpi-icon amber">📅</div>
+      </div>
+    </section>
+
+    <!-- Main Content Card -->
+    <div class="content-card">
+
+      <!-- Filter Controls Header -->
+      <div class="filter-header">
+        <div class="filter-tabs">
+          <button class="filter-tab active" id="tab-all" onclick="setFilterTab('all')">
+            جميع الفواتير
+            <span class="badge-count" id="count-all">0</span>
+          </button>
+          <button class="filter-tab warning-tab" id="tab-duplicates" onclick="setFilterTab('duplicates')">
+            ⚠️ الفواتير المكررة فقط
+            <span class="badge-count" id="count-duplicates" style="background:#fee2e2; color:#991b1b;">0</span>
+          </button>
+        </div>
+
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" placeholder="ابحث برقم الفاتورة، رقم الطاولة، أو اسم الزبون..." oninput="applyFilters()">
+        </div>
+
+        <div class="filter-group">
+          <select class="filter-select" id="filter-date-range" onchange="applyFilters()">
+            <option value="all">كل الأوقات</option>
+            <option value="today" selected>فواتير اليوم</option>
+            <option value="yesterday">أمس</option>
+            <option value="last7">آخر 7 أيام</option>
+            <option value="thisMonth">هذا الشهر</option>
+          </select>
+
+          <select class="filter-select" id="filter-payment-method" onchange="applyFilters()">
+            <option value="all">كل طرق الدفع</option>
+            <option value="cash">نقداً (كاش)</option>
+            <option value="card">بطاقة / إلكتروني</option>
+            <option value="dollar">بالدولار</option>
+          </select>
+
+          <button class="btn btn-danger-outline btn-sm" id="btn-bulk-delete-dups" style="display: none;" onclick="deleteSelectedDuplicates()">
+            🗑️ حذف الفواتير المكررة المحددة
+          </button>
+        </div>
+      </div>
+
+      <!-- Invoices List Table -->
+      <div class="table-responsive">
+        <table class="invoices-table">
+          <thead>
+            <tr>
+              <th style="width: 40px; text-align: center;">
+                <input type="checkbox" id="check-all-dups" onchange="toggleSelectAll(this)" style="display: none;">
+              </th>
+              <th>رقم الفاتورة</th>
+              <th>رقم الطاولة</th>
+              <th>التاريخ والوقت</th>
+              <th>اسم الزبون</th>
+              <th>طريقة الدفع</th>
+              <th>عدد الأصناف</th>
+              <th>المجموع النهائي</th>
+              <th>حالة التكرار</th>
+              <th style="text-align: left; padding-left: 20px;">الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="invoices-tbody">
+            <tr>
+              <td colspan="10">
+                <div class="loading-state">
+                  <div class="spinner"></div>
+                  <p>جاري جلب الفواتير من قاعدة البيانات...</p>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ==========================================================================
+       MODAL 1: EDIT INVOICE MODAL
+       ========================================================================== -->
+  <div class="modal-overlay" id="modal-edit-invoice">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 id="edit-modal-title">✏️ تعديل بيانات الفاتورة</h3>
+        <button class="modal-close-btn" onclick="closeModal('modal-edit-invoice')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-invoice-id">
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="edit-table-number">رقم الطاولة:</label>
+            <input type="text" id="edit-table-number">
+          </div>
+          <div class="form-group">
+            <label for="edit-customer-name">اسم الزبون:</label>
+            <input type="text" id="edit-customer-name" placeholder="زبون عام">
+          </div>
+          <div class="form-group">
+            <label for="edit-payment-method">طريقة الدفع:</label>
+            <select id="edit-payment-method">
+              <option value="cash">نقداً (كاش)</option>
+              <option value="card">بطاقة بنكية / دفع إلكتروني</option>
+              <option value="dollar">دولار أمريكي</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="edit-discount">الحسم / الخصم المباشر (ل.س):</label>
+            <input type="number" id="edit-discount" min="0" value="0" oninput="recalcEditModalTotals()">
+          </div>
+        </div>
+
+        <div class="items-editor-header">
+          <h4>قائمة الطلبات داخل الفاتورة</h4>
+          <button class="btn btn-outline btn-sm" onclick="addBlankItemRow()">+ إضافة صنف جديد</button>
+        </div>
+
+        <table class="items-edit-table">
+          <thead>
+            <tr>
+              <th style="width: 45%;">اسم الصنف</th>
+              <th style="width: 15%;">العدد</th>
+              <th style="width: 25%;">سعر الوحدة (ل.س)</th>
+              <th style="width: 15%; text-align: center;">ضيافة</th>
+              <th style="width: 10%; text-align: center;">حذف</th>
+            </tr>
+          </thead>
+          <tbody id="edit-items-tbody">
+            <!-- Dynamically populated rows -->
+          </tbody>
+        </table>
+
+        <div class="modal-totals-box">
+          <div class="modal-totals-row">
+            <span>المجموع الفرعي:</span>
+            <strong id="edit-modal-subtotal">0 ل.س</strong>
+          </div>
+          <div class="modal-totals-row">
+            <span>الحسم المطبق:</span>
+            <strong id="edit-modal-discount-display" style="color: var(--danger-color);">-0 ل.س</strong>
+          </div>
+          <div class="modal-totals-row grand">
+            <span>المجموع الصافي الجديد:</span>
+            <strong id="edit-modal-grandtotal">0 ل.س</strong>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('modal-edit-invoice')">إلغاء</button>
+        <button class="btn btn-primary" onclick="saveInvoiceChanges()">💾 حفظ التعديلات</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 2: RECEIPT PREVIEW & PRINT MODAL
+       ========================================================================== -->
+  <div class="modal-overlay" id="modal-preview-receipt">
+    <div class="modal-container" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3>معاينة إيصال الفاتورة</h3>
+        <button class="modal-close-btn" onclick="closeModal('modal-preview-receipt')">&times;</button>
+      </div>
+      <div class="modal-body" style="background: #f8fafc; text-align: center;">
+        <div class="receipt-preview-paper" id="receipt-paper-content">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button class="btn btn-outline" onclick="closeModal('modal-preview-receipt')">إغلاق</button>
+        <button class="btn btn-primary" id="btn-print-receipt" onclick="printReceiptFromModal()">🖨️ طباعة الإيصال</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Messages Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Main Logic Script -->
+  <script>
+    // State management
+    let dbInstance = null;
+    let rawInvoices = [];
+    let processedInvoices = [];
+    let duplicateGroups = [];
+    let currentFilterTab = 'all'; // 'all' | 'duplicates'
+    let currentActiveInvoiceForPrint = null;
+
+    // --- 1. INITIALIZATION ---
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        dbInstance = new BistroDatabase();
+        const connected = await dbInstance.init();
+        if (connected) {
+          await loadInvoicesData();
+        } else {
+          showToast('فشل الاتصال بقاعدة بيانات Firebase. يرجى التحقق من إعدادات الاتصال.', 'error');
+        }
+      } catch (err) {
+        console.error('Initialization error:', err);
+        showToast('حدث خطأ أثناء تهيئة الصفحة.', 'error');
+      }
+    });
+
+    // --- 2. DATA LOADING & DUPLICATE DETECTION ---
+    async function loadInvoicesData(showToastMsg = false) {
+      const tbody = document.getElementById('invoices-tbody');
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="10">
+            <div class="loading-state">
+              <div class="spinner"></div>
+              <p>جاري جلب الفواتير من قاعدة البيانات...</p>
+            </div>
+          </td>
+        </tr>
+      `;
+
+      try {
+        // Fetch all sales history
+        const sales = await dbInstance.getSalesHistory(true);
+        rawInvoices = sales || [];
+
+        // Sort descending by timestamp
+        rawInvoices.sort((a, b) => (b.timestamp || b.endTime || 0) - (a.timestamp || a.endTime || 0));
+
+        // Analyze and detect duplicates
+        detectDuplicateInvoices();
+
+        // Update KPIs & render
+        updateKPICards();
+        applyFilters();
+
+        if (showToastMsg) {
+          showToast(`تم تحديث البيانات بنجاح (${rawInvoices.length} فاتورة)`, 'success');
+        }
+      } catch (err) {
+        console.error('Error loading invoices:', err);
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="10" style="text-align: center; color: var(--danger-color); padding: 30px;">
+              حدث خطأ أثناء تحميل الفواتير. يرجى إعادة المحاولة.
+            </td>
+          </tr>
+        `;
+        showToast('تعذر تحميل الفواتير.', 'error');
+      }
+    }
+
+    /**
+     * Smart Duplicate Detection Algorithm:
+     * Groups invoices with identical table number + identical total + created within 15 minutes of each other.
+     */
+    function detectDuplicateInvoices() {
+      duplicateGroups = [];
+      const dupMap = new Map(); // id -> duplicateInfo object
+
+      // Group by table number
+      const tableBuckets = {};
+      rawInvoices.forEach(inv => {
+        const tbl = String(inv.tableNumber || 'unknown');
+        if (!tableBuckets[tbl]) tableBuckets[tbl] = [];
+        tableBuckets[tbl].push(inv);
+      });
+
+      // Window threshold: 15 minutes (900,000 ms)
+      const TIME_WINDOW_MS = 15 * 60 * 1000;
+
+      Object.keys(tableBuckets).forEach(tbl => {
+        const list = tableBuckets[tbl];
+        // Sort chronologically ascending for clustering
+        list.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+        for (let i = 0; i < list.length; i++) {
+          const invA = list[i];
+          const group = [invA];
+
+          for (let j = i + 1; j < list.length; j++) {
+            const invB = list[j];
+            const timeDiff = Math.abs((invB.timestamp || 0) - (invA.timestamp || 0));
+
+            // If time difference exceeds window, stop checking
+            if (timeDiff > TIME_WINDOW_MS) break;
+
+            // Check if total or items match
+            const totalsMatch = Math.abs((invA.total || 0) - (invB.total || 0)) < 1;
+            const itemsCountMatch = (invA.items || []).length === (invB.items || []).length;
+
+            if (totalsMatch && itemsCountMatch) {
+              group.push(invB);
+            }
+          }
+
+          if (group.length > 1) {
+            duplicateGroups.push(group);
+            group.forEach((item, idx) => {
+              dupMap.set(String(item.id), {
+                isDuplicate: true,
+                isRedundant: idx > 0, // Keep first one as original, flag others as redundant
+                groupSize: group.length,
+                timeDiffSeconds: Math.round(Math.abs((item.timestamp || 0) - (group[0].timestamp || 0)) / 1000),
+                originalId: group[0].id
+              });
+            });
+            // Skip checked elements
+            i += (group.length - 1);
+          }
+        }
+      });
+
+      // Augment invoices with duplicate metadata
+      processedInvoices = rawInvoices.map(inv => {
+        const dupInfo = dupMap.get(String(inv.id)) || { isDuplicate: false };
+        return {
+          ...inv,
+          dupInfo: dupInfo
+        };
+      });
+    }
+
+    // --- 3. FILTERING & RENDERING ---
+    function setFilterTab(tabName) {
+      currentFilterTab = tabName;
+      document.getElementById('tab-all').classList.toggle('active', tabName === 'all');
+      document.getElementById('tab-duplicates').classList.toggle('active', tabName === 'duplicates');
+
+      const bulkDeleteBtn = document.getElementById('btn-bulk-delete-dups');
+      const checkAllBox = document.getElementById('check-all-dups');
+      if (tabName === 'duplicates') {
+        bulkDeleteBtn.style.display = 'inline-flex';
+        checkAllBox.style.display = 'inline-block';
+      } else {
+        bulkDeleteBtn.style.display = 'none';
+        checkAllBox.style.display = 'none';
+      }
+
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const searchTerm = (document.getElementById('search-input').value || '').trim().toLowerCase();
+      const dateRange = document.getElementById('filter-date-range').value;
+      const paymentMethod = document.getElementById('filter-payment-method').value;
+
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+      const startOfYesterday = startOfToday - (24 * 60 * 60 * 1000);
+      const startOf7Days = startOfToday - (7 * 24 * 60 * 60 * 1000);
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+
+      let filtered = processedInvoices.filter(inv => {
+        // Tab Filter
+        if (currentFilterTab === 'duplicates' && !inv.dupInfo.isDuplicate) {
+          return false;
+        }
+
+        // Search Filter
+        if (searchTerm) {
+          const invId = String(inv.id || '').toLowerCase();
+          const tblNum = String(inv.tableNumber || '').toLowerCase();
+          const custName = String(inv.customerName || '').toLowerCase();
+          const matchesSearch = invId.includes(searchTerm) || tblNum.includes(searchTerm) || custName.includes(searchTerm);
+          if (!matchesSearch) return false;
+        }
+
+        // Date Filter
+        const t = inv.timestamp || inv.endTime || 0;
+        if (dateRange === 'today' && t < startOfToday) return false;
+        if (dateRange === 'yesterday' && (t < startOfYesterday || t >= startOfToday)) return false;
+        if (dateRange === 'last7' && t < startOf7Days) return false;
+        if (dateRange === 'thisMonth' && t < startOfMonth) return false;
+
+        // Payment Method Filter
+        if (paymentMethod !== 'all') {
+          const rawMethod = String(inv.paymentMethod || '').toLowerCase();
+          if (paymentMethod === 'cash' && !rawMethod.includes('cash') && !rawMethod.includes('نقداً')) return false;
+          if (paymentMethod === 'card' && !rawMethod.includes('card') && !rawMethod.includes('بطاقة')) return false;
+          if (paymentMethod === 'dollar' && inv.currencyType !== 'dollar') return false;
+        }
+
+        return true;
+      });
+
+      renderInvoicesTable(filtered);
+    }
+
+    function renderInvoicesTable(invoices) {
+      const tbody = document.getElementById('invoices-tbody');
+      tbody.innerHTML = '';
+
+      if (invoices.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="10" style="text-align: center; color: var(--text-muted); padding: 40px;">
+              ${currentFilterTab === 'duplicates' ? '🎉 رائع! لا توجد أي فواتير مكررة مطابقة للبحث.' : 'لا توجد فواتير مطابقة للخيارات المحددة.'}
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      invoices.forEach(inv => {
+        const tr = document.createElement('tr');
+        if (inv.dupInfo && inv.dupInfo.isDuplicate) {
+          tr.className = 'duplicate-row';
+        }
+
+        const formattedDate = new Date(inv.timestamp || inv.endTime || Date.now()).toLocaleString('ar-SY', {
+          month: 'numeric',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+
+        // Payment tag
+        let paymentBadge = '<span class="tag-payment cash">كاش</span>';
+        const pMethod = String(inv.paymentMethod || '').toLowerCase();
+        if (pMethod.includes('card') || pMethod.includes('بطاقة')) {
+          paymentBadge = '<span class="tag-payment card">بطاقة</span>';
+        } else if (inv.currencyType === 'dollar') {
+          paymentBadge = `<span class="tag-payment dollar">$${inv.dollarTotal || 0}</span>`;
+        }
+
+        // Duplicate badge
+        let dupBadge = '<span style="color: var(--text-muted); font-size: 12px;">سليمة</span>';
+        if (inv.dupInfo && inv.dupInfo.isDuplicate) {
+          if (inv.dupInfo.isRedundant) {
+            dupBadge = `<span class="tag-duplicate">⚠️ مكررة (+${inv.dupInfo.timeDiffSeconds}ث)</span>`;
+          } else {
+            dupBadge = `<span class="tag-duplicate" style="background:#fef3c7; color:#92400e; border-color:#fde68a;">🌟 الفاتورة الأصلية</span>`;
+          }
+        }
+
+        const itemsCount = (inv.items || []).reduce((sum, it) => sum + (it.quantity || 1), 0);
+
+        tr.innerHTML = `
+          <td style="text-align: center;">
+            ${inv.dupInfo && inv.dupInfo.isRedundant ? `<input type="checkbox" class="dup-checkbox" value="${inv.id}">` : ''}
+          </td>
+          <td><strong style="font-family: monospace; font-size: 14px;">#${inv.id}</strong></td>
+          <td><span style="font-weight: 700;">طاولة ${inv.tableNumber || '-'}</span></td>
+          <td style="font-size: 12.5px; color: var(--text-muted);">${formattedDate}</td>
+          <td>${inv.customerName || 'زبون عام'}</td>
+          <td>${paymentBadge}</td>
+          <td>${itemsCount} عنصر</td>
+          <td><strong style="color: var(--accent-green); font-size: 14px;">${formatCurrency(inv.total || 0)}</strong></td>
+          <td>${dupBadge}</td>
+          <td>
+            <div class="row-actions">
+              <button class="btn btn-outline btn-sm" title="معاينة وطباعة" onclick="openReceiptPreview('${inv.id}')">
+                👁️
+              </button>
+              <button class="btn btn-outline btn-sm" title="تعديل الفاتورة" onclick="openEditModal('${inv.id}')">
+                ✏️ تعديل
+              </button>
+              <button class="btn btn-danger-outline btn-sm" title="حذف الفاتورة" onclick="deleteSingleInvoice('${inv.id}')">
+                🗑️
+              </button>
+            </div>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateKPICards() {
+      const totalCount = rawInvoices.length;
+      let totalRevenue = 0;
+      let dupCount = 0;
+      let todayCount = 0;
+
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
+
+      processedInvoices.forEach(inv => {
+        totalRevenue += (inv.total || 0);
+        if (inv.dupInfo && inv.dupInfo.isDuplicate && inv.dupInfo.isRedundant) {
+          dupCount++;
+        }
+        const t = inv.timestamp || inv.endTime || 0;
+        if (t >= startOfToday) {
+          todayCount++;
+        }
+      });
+
+      document.getElementById('kpi-total-invoices').textContent = totalCount.toLocaleString('ar-SY');
+      document.getElementById('kpi-duplicate-invoices').textContent = dupCount.toLocaleString('ar-SY');
+      document.getElementById('kpi-total-revenue').textContent = formatCurrency(totalRevenue);
+      document.getElementById('kpi-today-invoices').textContent = todayCount.toLocaleString('ar-SY');
+
+      document.getElementById('count-all').textContent = totalCount;
+      document.getElementById('count-duplicates').textContent = dupCount;
+    }
+
+    // --- 4. EDIT INVOICE MODAL LOGIC ---
+    function openEditModal(invoiceId) {
+      const inv = rawInvoices.find(i => String(i.id) === String(invoiceId));
+      if (!inv) return;
+
+      document.getElementById('edit-invoice-id').value = inv.id;
+      document.getElementById('edit-modal-title').textContent = `✏️ تعديل بيانات الفاتورة #${inv.id}`;
+      document.getElementById('edit-table-number').value = inv.tableNumber || '';
+      document.getElementById('edit-customer-name').value = inv.customerName || '';
+      document.getElementById('edit-discount').value = inv.discount || 0;
+
+      const pSelect = document.getElementById('edit-payment-method');
+      const pVal = String(inv.paymentMethod || '').toLowerCase();
+      if (pVal.includes('card') || pVal.includes('بطاقة')) pSelect.value = 'card';
+      else if (inv.currencyType === 'dollar') pSelect.value = 'dollar';
+      else pSelect.value = 'cash';
+
+      // Populate Items
+      const tbody = document.getElementById('edit-items-tbody');
+      tbody.innerHTML = '';
+
+      const items = inv.items || [];
+      items.forEach((item, index) => {
+        addItemRow(item.name || '', item.quantity || 1, item.price || 0, !!item.isHospitality);
+      });
+
+      if (items.length === 0) {
+        addBlankItemRow();
+      }
+
+      recalcEditModalTotals();
+      openModal('modal-edit-invoice');
+    }
+
+    function addBlankItemRow() {
+      addItemRow('', 1, 0, false);
+    }
+
+    function addItemRow(name, qty, price, isHospitality) {
+      const tbody = document.getElementById('edit-items-tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" class="item-name" value="${escapeHtml(name)}" placeholder="اسم الصنف"></td>
+        <td><input type="number" class="item-qty" value="${qty}" min="1" oninput="recalcEditModalTotals()"></td>
+        <td><input type="number" class="item-price" value="${price}" min="0" oninput="recalcEditModalTotals()"></td>
+        <td style="text-align: center;">
+          <input type="checkbox" class="item-hosp" ${isHospitality ? 'checked' : ''} onchange="recalcEditModalTotals()">
+        </td>
+        <td style="text-align: center;">
+          <button class="btn btn-danger-outline btn-sm" onclick="this.closest('tr').remove(); recalcEditModalTotals();">✕</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function recalcEditModalTotals() {
+      const rows = document.querySelectorAll('#edit-items-tbody tr');
+      let subtotal = 0;
+
+      rows.forEach(tr => {
+        const qty = parseFloat(tr.querySelector('.item-qty')?.value) || 0;
+        const price = parseFloat(tr.querySelector('.item-price')?.value) || 0;
+        const isHosp = tr.querySelector('.item-hosp')?.checked;
+
+        if (!isHosp) {
+          subtotal += (qty * price);
+        }
+      });
+
+      const discountInput = document.getElementById('edit-discount');
+      let discount = parseFloat(discountInput?.value) || 0;
+      if (discount > subtotal) {
+        discount = subtotal;
+        discountInput.value = subtotal;
+      }
+      if (discount < 0) {
+        discount = 0;
+        discountInput.value = 0;
+      }
+
+      const grandTotal = Math.max(0, subtotal - discount);
+
+      document.getElementById('edit-modal-subtotal').textContent = formatCurrency(subtotal);
+      document.getElementById('edit-modal-discount-display').textContent = `-${formatCurrency(discount)}`;
+      document.getElementById('edit-modal-grandtotal').textContent = formatCurrency(grandTotal);
+    }
+
+    async function saveInvoiceChanges() {
+      const invoiceId = document.getElementById('edit-invoice-id').value;
+      const inv = rawInvoices.find(i => String(i.id) === String(invoiceId));
+      if (!inv) return;
+
+      const tableNumber = document.getElementById('edit-table-number').value.trim();
+      const customerName = document.getElementById('edit-customer-name').value.trim();
+      const paymentMethod = document.getElementById('edit-payment-method').value;
+      const discount = parseFloat(document.getElementById('edit-discount').value) || 0;
+
+      const rows = document.querySelectorAll('#edit-items-tbody tr');
+      const updatedItems = [];
+      let subtotal = 0;
+
+      rows.forEach(tr => {
+        const name = tr.querySelector('.item-name')?.value.trim();
+        const qty = parseInt(tr.querySelector('.item-qty')?.value) || 1;
+        const price = parseFloat(tr.querySelector('.item-price')?.value) || 0;
+        const isHosp = !!tr.querySelector('.item-hosp')?.checked;
+
+        if (name) {
+          updatedItems.push({
+            name: name,
+            quantity: qty,
+            price: price,
+            isHospitality: isHosp
+          });
+          if (!isHosp) {
+            subtotal += (qty * price);
+          }
+        }
+      });
+
+      if (updatedItems.length === 0) {
+        alert('يجب أن تحتوي الفاتورة على صنف واحد على الأقل.');
+        return;
+      }
+
+      const total = Math.max(0, subtotal - discount);
+
+      const updatedRecord = {
+        ...inv,
+        tableNumber: tableNumber || inv.tableNumber || '1',
+        customerName: customerName || 'زبون عام',
+        paymentMethod: paymentMethod,
+        discount: discount,
+        subtotal: subtotal,
+        total: total,
+        items: updatedItems,
+        lastModified: Date.now()
+      };
+
+      try {
+        await dbInstance.put('sales_history', updatedRecord);
+        closeModal('modal-edit-invoice');
+        showToast(`تم حفظ تعديلات الفاتورة #${invoiceId} بنجاح!`, 'success');
+        await loadInvoicesData();
+      } catch (err) {
+        console.error('Error updating invoice:', err);
+        showToast('فشل حفظ التعديلات في قاعدة البيانات.', 'error');
+      }
+    }
+
+    // --- 5. DELETE INVOICE ACTIONS ---
+    async function deleteSingleInvoice(invoiceId) {
+      const inv = rawInvoices.find(i => String(i.id) === String(invoiceId));
+      const amountStr = inv ? formatCurrency(inv.total || 0) : '';
+
+      if (!confirm(`هل أنت متأكد من حذف الفاتورة #${invoiceId} (طاولة ${inv?.tableNumber || '-'} بقيمة ${amountStr}) نهائياً؟\nلا يمكن التراجع عن هذا الإجراء.`)) {
+        return;
+      }
+
+      try {
+        await dbInstance.delete('sales_history', invoiceId);
+        showToast(`تم حذف الفاتورة #${invoiceId} بنجاح`, 'success');
+        await loadInvoicesData();
+      } catch (err) {
+        console.error('Delete invoice failed:', err);
+        showToast('حدث خطأ أثناء حذف الفاتورة.', 'error');
+      }
+    }
+
+    async function deleteSelectedDuplicates() {
+      const checkedBoxes = Array.from(document.querySelectorAll('.dup-checkbox:checked'));
+      if (checkedBoxes.length === 0) {
+        alert('الرجاء تحديد الفواتير المكررة المراد حذفها أولاً.');
+        return;
+      }
+
+      if (!confirm(`هل أنت متأكد من حذف ${checkedBoxes.length} فواتير مكررة محددة؟`)) {
+        return;
+      }
+
+      try {
+        for (const box of checkedBoxes) {
+          await dbInstance.delete('sales_history', box.value);
+        }
+        showToast(`تم حذف ${checkedBoxes.length} فواتير مكررة بنجاح!`, 'success');
+        await loadInvoicesData();
+      } catch (err) {
+        console.error('Bulk duplicate delete failed:', err);
+        showToast('حدث خطأ أثناء حذف بعض الفواتير.', 'error');
+      }
+    }
+
+    function toggleSelectAll(masterBox) {
+      document.querySelectorAll('.dup-checkbox').forEach(box => {
+        box.checked = masterBox.checked;
+      });
+    }
+
+    // --- 6. RECEIPT PREVIEW & PRINT ---
+    function openReceiptPreview(invoiceId) {
+      const inv = rawInvoices.find(i => String(i.id) === String(invoiceId));
+      if (!inv) return;
+
+      currentActiveInvoiceForPrint = inv;
+      const container = document.getElementById('receipt-paper-content');
+
+      const formattedDate = new Date(inv.timestamp || inv.endTime || Date.now()).toLocaleString('ar-SY');
+      const formattedInvoiceId = 'Bis-' + String(inv.id).padStart(6, '0');
+
+      let itemsHtml = '';
+      (inv.items || []).forEach(it => {
+        const itemTotal = it.isHospitality ? 0 : ((it.price || 0) * (it.quantity || 1));
+        itemsHtml += `
+          <tr style="border-bottom: 1px dashed #ddd;">
+            <td style="text-align: right; padding: 6px 0;">${it.name || ''} ${it.isHospitality ? '<span style="font-size:10px; color:#193B23;">(ضيافة)</span>' : ''}</td>
+            <td style="text-align: center; padding: 6px 0;">x${it.quantity || 1}</td>
+            <td style="text-align: left; padding: 6px 0;">${it.isHospitality ? '0' : formatCurrency(itemTotal)}</td>
+          </tr>
+        `;
+      });
+
+      container.innerHTML = `
+        <div style="text-align: center; margin-bottom: 12px;">
+          <h2 style="font-size: 20px; font-weight: 800; margin: 0;">Bistro Restaurant</h2>
+          <p style="font-size: 11px; color: #666; margin: 2px 0 0 0;">إيصال دفع رسمي</p>
+        </div>
+        <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+          <span>رقم الفاتورة:</span>
+          <strong>${formattedInvoiceId}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+          <span>طاولة:</span>
+          <span>طاولة ${inv.tableNumber || '-'}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px;">
+          <span>الزبون:</span>
+          <span>${inv.customerName || 'زبون عام'}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #555; margin-bottom: 8px;">
+          <span>التاريخ:</span>
+          <span>${formattedDate}</span>
+        </div>
+        <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 8px 0;">
+          <thead>
+            <tr style="border-bottom: 1px dashed #000;">
+              <th style="text-align: right; padding-bottom: 4px;">الصنف</th>
+              <th style="text-align: center; padding-bottom: 4px;">العدد</th>
+              <th style="text-align: left; padding-bottom: 4px;">الإجمالي</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+        <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+        <div style="font-size: 13px; line-height: 1.6;">
+          <div style="display: flex; justify-content: space-between;">
+            <span>المجموع الفرعي:</span>
+            <span>${formatCurrency(inv.subtotal || inv.total || 0)}</span>
+          </div>
+          ${inv.discount ? `
+          <div style="display: flex; justify-content: space-between; color: #991b1b;">
+            <span>الخصم:</span>
+            <span>-${formatCurrency(inv.discount)}</span>
+          </div>` : ''}
+          <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 15px; border-top: 1px dashed #000; padding-top: 6px; margin-top: 6px;">
+            <span>المجموع الصافي:</span>
+            <span>${formatCurrency(inv.total || 0)}</span>
+          </div>
+        </div>
+        <div style="border-top: 1px dashed #000; margin: 12px 0 6px 0;"></div>
+        <div style="font-size: 10px; color: #666; text-align: center;">
+          شكراً لزيارتكم! نتمنى لكم يوماً سعيداً
+        </div>
+      `;
+
+      openModal('modal-preview-receipt');
+    }
+
+    function printReceiptFromModal() {
+      const content = document.getElementById('receipt-paper-content').innerHTML;
+      const printWindow = window.open('', '_blank', 'width=380,height=600');
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+          <meta charset="UTF-8">
+          <title>طباعة الفاتورة</title>
+          <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+          <style>
+            body { font-family: 'Cairo', sans-serif; margin: 0; padding: 10px; direction: rtl; }
+            @media print {
+              @page { margin: 0; }
+              body { margin: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          ${content}
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          <\/script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+
+    // --- 7. MODAL & UTILITY HELPERS ---
+    function openModal(modalId) {
+      document.getElementById(modalId).classList.add('active');
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('active');
+    }
+
+    function formatCurrency(amount) {
+      return Number(amount || 0).toLocaleString('ar-SY') + ' ل.س';
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = msg;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        toast.style.transition = 'all 0.3s';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+  </script>
+</body>
+
+</html>
